@@ -1,0 +1,26 @@
+{
+  "name": "transparent-twitch-chat-overlay-extended",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Twitch chat and event overlay for Transparent-Twitch-Chat-Overlay (Custom URL)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "tmi.js": "^1.8.5"
+  },
+  "devDependencies": {
+    "@types/tmi.js": "^1.8.6",
+    "jsdom": "^27.0.1",
+    "typescript": "^7.0.2",
+    "vite": "^7.3.6",
+    "vitest": "^3.2.7"
+  }
+}
