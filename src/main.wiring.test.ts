@@ -18,6 +18,53 @@ const VIEWER_PRIVMSG =
   '@badges=;color=;display-name=viewer;emotes=;id=v1;mod=0;room-id=1;tmi-sent-ts=1;user-id=2 ' +
   ':viewer!viewer@viewer.tmi.twitch.tv PRIVMSG #derpierre65 :delayed hello';
 
+const ably = vi.hoisted(() => ({
+  options: null as unknown,
+  channel: null as string | null,
+  listener: null as ((message: { name: string; data: unknown; clientId?: string }) => void) | null,
+  published: [] as { name: string; data: unknown }[],
+  present: false,
+}));
+
+const sound = vi.hoisted(() => ({ plays: 0 }));
+
+vi.mock('./host/sound', () => ({
+  createSoundPlayer: () => ({
+    play: () => {
+      sound.plays += 1;
+    },
+  }),
+}));
+
+vi.mock('ably', () => ({
+  Realtime: class {
+    connection = { on: (cb: (change: { current: string }) => void) => cb({ current: 'connected' }) };
+    channels = {
+      get: (name: string) => {
+        ably.channel = name;
+        return {
+          subscribe: async (cb: typeof ably.listener) => {
+            ably.listener = cb;
+            return null;
+          },
+          publish: async (name: string, data: unknown) => {
+            ably.published.push({ name, data });
+          },
+          presence: {
+            enter: async () => {
+              ably.present = true;
+            },
+          },
+        };
+      },
+    };
+    constructor(options: unknown) {
+      ably.options = options;
+    }
+    close(): void {}
+  },
+}));
+
 class FakeSocket {
   static last: FakeSocket | null = null;
   static privmsg = PRIVMSG;
@@ -58,6 +105,11 @@ beforeEach(() => {
   vi.resetModules();
   FakeSocket.last = null;
   FakeSocket.privmsg = PRIVMSG;
+  ably.options = null;
+  ably.channel = null;
+  ably.listener = null;
+  ably.published = [];
+  ably.present = false;
   localStorage.clear();
   vi.stubGlobal('WebSocket', FakeSocket);
   window.history.replaceState({}, '', '/');
@@ -167,5 +219,88 @@ describe('bootstrap wiring', () => {
 
     await vi.waitFor(() => expect(document.querySelector('.login')).not.toBeNull(), { timeout: 4000 });
     expect(FakeSocket.last).toBeNull();
+  });
+
+  it('holds viewer messages until a mod approves them via ably', async () => {
+    window.history.replaceState({}, '', '/?ablyKey=app.key:sub&ablyChannel=mods');
+    localStorage.setItem('overlay.identity', JSON.stringify({ login: 'derpierre65', userId: '' }));
+    FakeSocket.privmsg = VIEWER_PRIVMSG;
+    await import('./main');
+
+    const log = document.getElementById('log');
+    await vi.waitFor(() => expect(log?.textContent).toContain('Connected to derpierre65'), { timeout: 4000 });
+    await vi.waitFor(() => expect(ably.listener).not.toBeNull(), { timeout: 4000 });
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(log?.textContent).not.toContain('delayed hello');
+    expect(ably.options).toMatchObject({ key: 'app.key:sub' });
+    expect(ably.channel).toBe('mods');
+    expect(log?.textContent).toContain('Chat approval active — no trusted users yet (not saved)');
+
+    ably.listener!({ name: 'approve-message', data: { messageId: 'v1', userId: '2', login: 'viewer' } });
+    await vi.waitFor(() => expect(log?.textContent).toContain('delayed hello'), { timeout: 4000 });
+  });
+
+  it('announces mod actions silently and answers sync requests with the state', async () => {
+    window.history.replaceState({}, '', '/?ablyKey=app.key:sub&ablyChannel=mods');
+    localStorage.setItem('overlay.identity', JSON.stringify({ login: 'derpierre65', userId: '' }));
+    FakeSocket.privmsg = VIEWER_PRIVMSG;
+    await import('./main');
+
+    const log = document.getElementById('log');
+    await vi.waitFor(() => expect(ably.listener).not.toBeNull(), { timeout: 4000 });
+    await vi.waitFor(() => expect(ably.published.some((m) => m.name === 'state')).toBe(true), { timeout: 4000 });
+    expect(ably.present).toBe(true);
+
+    await vi.waitFor(() => expect(log?.textContent).toContain('Chat approval active'), { timeout: 4000 });
+    const playsBefore = sound.plays;
+
+    ably.listener!({ name: 'approve-message', data: { messageId: 'x1', login: 'someone' } });
+    await vi.waitFor(() => expect(log?.textContent).toContain('Message from someone approved by a mod'), { timeout: 4000 });
+    expect(sound.plays).toBe(playsBefore);
+    ably.listener!({ name: 'trust-user', data: { userId: '2', login: 'viewer' }, clientId: 'ModName' });
+    await vi.waitFor(() => expect(log?.textContent).toContain('viewer trusted by ModName'), { timeout: 4000 });
+
+    ably.published = [];
+    ably.listener!({ name: 'sync-request', data: null, clientId: 'Other' });
+    await vi.waitFor(() => expect(ably.published).toHaveLength(1), { timeout: 4000 });
+    expect(ably.published[0]).toEqual({
+      name: 'state',
+      data: {
+        reset: true,
+        trusted: { '2': { login: 'viewer', by: 'ModName' } },
+        approved: { x1: { login: 'someone', by: null } },
+      },
+    });
+  });
+
+  it('shows messages of users from the stored trust list right away', async () => {
+    window.history.replaceState(
+      {},
+      '',
+      '/?ablyKey=k&ablyChannel=mods&trustUrl=https://trust.example&trustSecret=s',
+    );
+    localStorage.setItem('overlay.identity', JSON.stringify({ login: 'derpierre65', userId: '' }));
+    FakeSocket.privmsg = VIEWER_PRIVMSG;
+    const fetchFn = vi.fn(async (url: string) =>
+      url === 'https://trust.example/trusted/derpierre65'
+        ? new Response(JSON.stringify({ users: { '2': { login: 'viewer', trustedAt: '2026-01-01T00:00:00.000Z' } } }))
+        : new Response('{}'),
+    );
+    vi.stubGlobal('fetch', fetchFn);
+    await import('./main');
+
+    const log = document.getElementById('log');
+    await vi.waitFor(() => expect(log?.textContent).toContain('delayed hello'), { timeout: 4000 });
+    await vi.waitFor(() => expect(log?.textContent).toContain('Chat approval active — 1 trusted: viewer'), { timeout: 4000 });
+  });
+
+  it('does not load ably without the approval parameters', async () => {
+    localStorage.setItem('overlay.identity', JSON.stringify({ login: 'derpierre65', userId: '' }));
+    FakeSocket.privmsg = VIEWER_PRIVMSG;
+    await import('./main');
+
+    const log = document.getElementById('log');
+    await vi.waitFor(() => expect(log?.textContent).toContain('delayed hello'), { timeout: 4000 });
+    expect(ably.options).toBeNull();
   });
 });

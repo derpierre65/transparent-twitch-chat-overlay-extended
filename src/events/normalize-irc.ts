@@ -88,6 +88,7 @@ export function parseAuthor(tags: IrcTags): Author {
   const login = (str(tags['username']) ?? '').toLowerCase();
 
   return {
+    id: str(tags['user-id']) ?? '',
     login,
     displayName: str(tags['display-name']) || login,
     color: str(tags['color']) || null,

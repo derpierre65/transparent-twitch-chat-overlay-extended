@@ -1,6 +1,7 @@
 import type { Author, OverlayEvent } from '../events/types';
 
 const author = (login: string, color: string | null = null): Author => ({
+  id: login,
   login,
   displayName: login,
   color,

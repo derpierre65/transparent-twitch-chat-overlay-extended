@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Overlay URL generator</title>
+    <link rel="stylesheet" href="/src/tool-page.css" />
+  </head>
+  <body>
+    <h1>Overlay URL generator</h1>
+    <p>
+      Builds the URL for the overlay app's Custom URL. Empty fields use the overlay's defaults.
+      Everything happens in this browser, nothing is sent anywhere.
+    </p>
+
+    <form id="generator" autocomplete="off">
+      <label>
+        Overlay URL
+        <small>Where the overlay is hosted.</small>
+        <input name="baseUrl" required />
+      </label>
+
+      <fieldset>
+        <legend>Display</legend>
+        <label>
+          Language
+          <select name="language">
+            <option value="en">English</option>
+            <option value="de">Deutsch</option>
+          </select>
+        </label>
+        <label>
+          Fade
+          <small>Seconds until a line fades out, 0–3600. 0 disables fading. Default 60.</small>
+          <input name="fade" type="number" min="0" max="3600" step="any" placeholder="60" />
+        </label>
+        <label>
+          Max lines
+          <small>Maximum number of visible lines, 1–500. Default 50.</small>
+          <input name="maxLines" type="number" min="1" max="500" step="1" placeholder="50" />
+        </label>
+        <label class="checkbox">
+          <input name="demo" type="checkbox" />
+          Demo mode (synthetic chat and events, no login)
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Chat approval (optional)</legend>
+        <small>See <code>chat-approval/README.md</code> for the setup.</small>
+        <label>
+          Ably key
+          <small>Overlay key with <code>subscribe</code>, <code>publish</code> and <code>presence</code>. Not a mod key.</small>
+          <input name="ablyKey" type="password" placeholder="xxxx.yyyy:zzzz" />
+        </label>
+        <label>
+          Ably channel
+          <input name="ablyChannel" placeholder="overlay-approval" />
+        </label>
+        <label>
+          Worker URL
+          <small>Optional. Without it, trusted users are lost when the overlay reloads.</small>
+          <input name="trustUrl" placeholder="https://twitch-overlay-trust.<subdomain>.workers.dev" />
+        </label>
+        <label>
+          Worker secret
+          <input name="trustSecret" type="password" />
+        </label>
+      </fieldset>
+    </form>
+
+    <label>
+      Overlay URL
+      <small>Contains secrets when chat approval is set: do not show it on stream.</small>
+      <textarea id="url" readonly></textarea>
+    </label>
+    <button id="copy" type="button" disabled>Copy</button>
+    <p id="message"></p>
+
+    <script type="module" src="/src/generator-page.ts"></script>
+  </body>
+</html>

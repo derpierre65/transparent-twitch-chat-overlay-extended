@@ -43,11 +43,13 @@ describe('parseAuthor', () => {
     const author = parseAuthor({
       'display-name': 'derPierre65',
       username: 'derpierre65',
+      'user-id': '18853937',
       color: '#FF0000',
       badges: 'moderator/1,subscriber/12',
     });
 
     expect(author).toEqual({
+      id: '18853937',
       login: 'derpierre65',
       displayName: 'derPierre65',
       color: '#FF0000',
@@ -60,6 +62,10 @@ describe('parseAuthor', () => {
 
   it('falls back to the login when no display name is set', () => {
     expect(parseAuthor({ username: 'someone' }).displayName).toBe('someone');
+  });
+
+  it('reports a missing user id as empty', () => {
+    expect(parseAuthor({ username: 'someone' }).id).toBe('');
   });
 
   it('reports a missing color as null', () => {

@@ -11,7 +11,7 @@ const chat = (id: string, login = 'user'): OverlayEvent => ({
   id,
   ts: 0,
   type: 'chat',
-  author: { login, displayName: login, color: null, badges: [] },
+  author: { id: login, login, displayName: login, color: null, badges: [] },
   text: id,
   twitchEmotes: [],
   action: false,

@@ -1,0 +1,19 @@
+name = "twitch-overlay-trust"
+main = "src/worker.ts"
+compatibility_date = "2025-09-01"
+
+# Replace with the id printed by `npx wrangler kv namespace create TRUST_KV`.
+[[kv_namespaces]]
+binding = "TRUST_KV"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+# Limits requests per client IP, so the secret cannot be found by trying.
+[[ratelimits]]
+name = "RATE_LIMITER"
+namespace_id = "1001"
+
+  [ratelimits.simple]
+  limit = 30
+  period = 60
+
+# OVERLAY_SECRET is set via `npx wrangler secret put OVERLAY_SECRET`, never here.

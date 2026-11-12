@@ -1,5 +1,14 @@
 export type Language = 'en' | 'de';
 
+export type TrustStorage = 'saved' | 'memory' | 'unloaded';
+
+const MAX_LISTED_LOGINS = 20;
+
+function listLogins(logins: string[], more: (count: number) => string): string {
+  const shown = logins.slice(0, MAX_LISTED_LOGINS).join(', ');
+  return logins.length > MAX_LISTED_LOGINS ? `${shown}, ${more(logins.length - MAX_LISTED_LOGINS)}` : shown;
+}
+
 export interface Messages {
   raid(from: string, viewers: number): string;
   sub(user: string, tier: string): string;
@@ -14,6 +23,12 @@ export interface Messages {
   unban(user: string, moderator: string): string;
   bits(count: number): string;
   connected(channel: string): string;
+  /** `memory`: no worker configured, `unloaded`: the worker's list failed to load. */
+  approvalActive(logins: string[], storage: TrustStorage): string;
+  /** `by` is the mod name from the setup code, `null` if the mod has none. */
+  approvalTrusted(login: string, by: string | null): string;
+  approvalUntrusted(login: string, by: string | null): string;
+  approvalApproved(login: string | null, by: string | null): string;
   login: {
     title: string;
     intro: string;
@@ -84,6 +99,16 @@ const en: Messages = {
   unban: (user, moderator) => `${user} was unbanned by ${moderator}`,
   bits: (count) => `${count} Bits `,
   connected: (channel) => `Connected to ${channel}`,
+  approvalActive: (logins, storage) => {
+    if (storage === 'unloaded') return 'Chat approval active — trusted users could not be loaded';
+    const list = logins.length
+      ? `${logins.length} trusted: ${listLogins(logins, (n) => `+${n} more`)}`
+      : 'no trusted users yet';
+    return `Chat approval active — ${list}${storage === 'memory' ? ' (not saved)' : ''}`;
+  },
+  approvalTrusted: (login, by) => `${login} trusted by ${by ?? 'a mod'}`,
+  approvalUntrusted: (login, by) => `${login} untrusted by ${by ?? 'a mod'}`,
+  approvalApproved: (login, by) => `${login ? `Message from ${login}` : 'Message'} approved by ${by ?? 'a mod'}`,
   login: {
     title: 'Connect with Twitch',
     intro: 'Open the link in your own browser and confirm there. The overlay signs in by itself afterwards.',
@@ -117,6 +142,16 @@ const de: Messages = {
   unban: (user, moderator) => `${user} wurde von ${moderator} entbannt`,
   bits: (count) => `${count} Bits `,
   connected: (channel) => `Verbunden mit ${channel}`,
+  approvalActive: (logins, storage) => {
+    if (storage === 'unloaded') return 'Chat-Freigabe aktiv — vertrauenswürdige User konnten nicht geladen werden';
+    const list = logins.length
+      ? `${logins.length} vertrauenswürdig: ${listLogins(logins, (n) => `+${n} weitere`)}`
+      : 'noch keine vertrauenswürdigen User';
+    return `Chat-Freigabe aktiv — ${list}${storage === 'memory' ? ' (nicht gespeichert)' : ''}`;
+  },
+  approvalTrusted: (login, by) => `${login} von ${by ?? 'einem Mod'} als vertrauenswürdig markiert`,
+  approvalUntrusted: (login, by) => `${login} von ${by ?? 'einem Mod'} nicht mehr vertraut`,
+  approvalApproved: (login, by) => `${login ? `Nachricht von ${login}` : 'Nachricht'} von ${by ?? 'einem Mod'} freigegeben`,
   login: {
     title: 'Mit Twitch verbinden',
     intro: 'Link im eigenen Browser öffnen und dort bestätigen. Das Overlay meldet sich danach von selbst an.',

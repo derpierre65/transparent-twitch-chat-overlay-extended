@@ -16,6 +16,27 @@ describe('parseLanguage', () => {
 });
 
 describe('MESSAGES', () => {
+  it('announces chat approval with the trusted users', () => {
+    expect(MESSAGES.en.approvalActive(['alice', 'bob'], 'saved')).toBe('Chat approval active — 2 trusted: alice, bob');
+    expect(MESSAGES.en.approvalActive([], 'memory')).toBe('Chat approval active — no trusted users yet (not saved)');
+    expect(MESSAGES.en.approvalActive([], 'unloaded')).toBe('Chat approval active — trusted users could not be loaded');
+    expect(MESSAGES.de.approvalActive(['alice'], 'memory')).toBe('Chat-Freigabe aktiv — 1 vertrauenswürdig: alice (nicht gespeichert)');
+  });
+
+  it('names the mod behind an approval', () => {
+    expect(MESSAGES.en.approvalTrusted('alice', 'Mod')).toBe('alice trusted by Mod');
+    expect(MESSAGES.en.approvalUntrusted('alice', null)).toBe('alice untrusted by a mod');
+    expect(MESSAGES.en.approvalApproved(null, 'Mod')).toBe('Message approved by Mod');
+    expect(MESSAGES.de.approvalTrusted('alice', null)).toBe('alice von einem Mod als vertrauenswürdig markiert');
+    expect(MESSAGES.de.approvalApproved('bob', 'Mod')).toBe('Nachricht von bob von Mod freigegeben');
+  });
+
+  it('shortens a long list of trusted users', () => {
+    const logins = Array.from({ length: 23 }, (_, i) => `u${i}`);
+    expect(MESSAGES.en.approvalActive(logins, 'saved').endsWith(', u19, +3 more')).toBe(true);
+    expect(MESSAGES.de.approvalActive(logins, 'saved').endsWith(', u19, +3 weitere')).toBe(true);
+  });
+
   it('formats the same event in both languages', () => {
     expect(MESSAGES.en.resub('Regular', 42, 12)).toBe('Regular has been subscribed for 42 months, 12 in a row');
     expect(MESSAGES.de.resub('Stammgast', 42, 12)).toBe('Stammgast ist seit 42 Monaten dabei, 12 in Folge');

@@ -11,6 +11,7 @@ const ctx: RenderContext = {
 };
 
 const author: Author = {
+  id: '18853937',
   login: 'derpierre65',
   displayName: 'derPierre65',
   color: '#ff0000',

@@ -4,6 +4,7 @@ const LABEL: Record<StatusKey, string> = {
   irc: 'Chat',
   eventsub: 'Events',
   token: 'Token',
+  approval: 'Approval',
 };
 
 export interface StatusPill {

@@ -1,0 +1,84 @@
+body {
+  font: 15px/1.5 'Segoe UI', system-ui, sans-serif;
+  background: #18181b;
+  color: #efeff1;
+  max-width: 560px;
+  margin: 40px auto;
+  padding: 0 16px;
+}
+
+label {
+  display: block;
+  margin-top: 14px;
+  font-weight: 600;
+}
+
+label.checkbox {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+small {
+  display: block;
+  color: #adadb8;
+  font-weight: 400;
+}
+
+fieldset {
+  margin: 24px 0 0;
+  padding: 4px 16px 16px;
+  border: 1px solid #3a3a3d;
+  border-radius: 6px;
+}
+
+legend {
+  padding: 0 6px;
+  font-weight: 600;
+}
+
+input:not([type='checkbox']),
+select,
+textarea {
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px;
+  border: 1px solid #3a3a3d;
+  border-radius: 4px;
+  background: #0e0e10;
+  color: inherit;
+  font: inherit;
+}
+
+textarea {
+  height: 110px;
+  font-family: Consolas, monospace;
+  word-break: break-all;
+}
+
+button {
+  margin-top: 16px;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 4px;
+  background: #9147ff;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+#message {
+  min-height: 1.5em;
+  color: #ff8280;
+}
+
+a {
+  color: #bf94ff;
+}

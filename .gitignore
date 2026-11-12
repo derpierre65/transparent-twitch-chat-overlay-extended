@@ -3,3 +3,5 @@ dist/
 .env
 .env.local
 .claude/
+.wrangler/
+chat-approval/worker/wrangler.toml

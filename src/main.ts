@@ -5,11 +5,15 @@ import { createTokenRefresher, type TokenRefresher } from './auth/refresh';
 import { authenticate, type Session } from './auth/session';
 import { emptyBadgeIndex, loadBadges, type BadgeIndex } from './badges/badges';
 import { CLIENT_ID } from './client-id';
-import { parseConfig } from './config';
-import { MESSAGES } from './i18n';
+import type { ApprovalCommand } from './approval/commands';
+import { createApprovalLog, splitState } from './approval/state';
+import { createTrustStore } from './approval/trust-store';
+import { parseConfig, type ApprovalConfig } from './config';
+import { MESSAGES, type Messages } from './i18n';
 import { playDemo } from './demo/fixtures';
 import { createRegistry } from './emotes/registry';
 import { loadEmotes } from './emotes/providers';
+import { createApprovalGate, type ApprovalGate } from './events/approval-gate';
 import { createBus } from './events/bus';
 import { createChatDelay } from './events/chat-delay';
 import type { OverlayEvent } from './events/types';
@@ -29,6 +33,7 @@ const RETRY_MS = 30_000;
 // Twitch does not report chat delay changes via EventSub, so poll.
 const CHAT_DELAY_POLL_MS = 60_000;
 const CHAT_DELAY_WAIT_MS = 3_000;
+const TRUST_WAIT_MS = 3_000;
 
 async function main(): Promise<void> {
   const config = parseConfig(window.location.search);
@@ -116,7 +121,7 @@ async function main(): Promise<void> {
 
   bus.on((event: OverlayEvent) => {
     try {
-      if (log.handle(event)) sound.play();
+      if (log.handle(event) && !(event.type === 'notice' && event.silent)) sound.play();
     } catch (error) {
       hostLog(`render failed for ${event.type}: ${String(error)}`);
     }
@@ -128,6 +133,14 @@ async function main(): Promise<void> {
   }
 
   const chatDelay = createChatDelay({ emit: (event) => bus.emit(event) });
+  // Gate before the delay, so released messages still wait out Twitch's chat delay.
+  const notifyApproval = (text: string): void =>
+    bus.emit({ id: `approval-${Date.now()}-${Math.random()}`, ts: Date.now(), type: 'notice', text, silent: true });
+  const approval =
+    config.approval && channel
+      ? startApproval(config.approval, channel, status, t, (event) => chatDelay.handle(event), notifyApproval)
+      : null;
+  const intake = approval?.gate ?? chatDelay;
 
   if (session) {
     const getToken = startEventSub(session, refresher, status, bus.emit);
@@ -145,9 +158,12 @@ async function main(): Promise<void> {
   }
 
   if (channel) {
+    // Otherwise messages of already trusted users wait in the gate until the list arrives.
+    if (approval) await Promise.race([approval.ready, new Promise((resolve) => window.setTimeout(resolve, TRUST_WAIT_MS))]);
+
     const irc = createIrcSource({
       channel,
-      emit: (event) => chatDelay.handle(event),
+      emit: (event) => intake.handle(event),
       onStatus: (state) => {
         status.set('irc', state);
         // Visible confirmation in the overlay, also after every reconnect.
@@ -163,6 +179,74 @@ async function main(): Promise<void> {
     });
     await irc.connect();
   }
+}
+
+function startApproval(
+  approval: ApprovalConfig,
+  channel: string,
+  status: StatusPill,
+  t: Messages,
+  emit: (event: OverlayEvent) => void,
+  notify: (text: string) => void,
+): { gate: ApprovalGate; ready: Promise<boolean> } {
+  if (!approval.trust) hostLog('trustUrl/trustSecret not set — trusted users are kept in memory only.');
+
+  const trust = createTrustStore({
+    endpoint: approval.trust,
+    channel,
+    onLoaded: () => gate.releaseTrusted(),
+  });
+  const gate = createApprovalGate({ emit, trust });
+  const approvals = createApprovalLog();
+  const ready = trust.load();
+  trust.start();
+  window.addEventListener('pagehide', () => void trust.flush({ keepalive: true }));
+
+  const state = () =>
+    splitState(
+      trust.entries().map(([id, user]) => [id, { login: user.login, by: user.trustedBy ?? null }]),
+      approvals.entries(),
+    );
+
+  function onCommand(command: ApprovalCommand, publishState: () => void): void {
+    if (command.type === 'sync-request') {
+      void ready.then(publishState);
+      return;
+    }
+
+    const wasTrusted = command.type !== 'approve-message' && trust.has(command.userId);
+    gate.command(command);
+    if (command.type === 'trust-user' && !wasTrusted) notify(t.approvalTrusted(command.login, command.by));
+    if (command.type === 'untrust-user' && wasTrusted) notify(t.approvalUntrusted(command.login, command.by));
+    if (command.type === 'approve-message' && approvals.add(command.messageId, command)) {
+      notify(t.approvalApproved(command.login, command.by));
+    }
+  }
+
+  // Loaded on demand so overlays without the feature do not download the Ably client.
+  import('./approval/ably')
+    .then(({ connectApprovalFeed }) => {
+      const feed = connectApprovalFeed({
+        key: approval.ablyKey,
+        channel: approval.ablyChannel,
+        onCommand: (command) => onCommand(command, () => feed.publishState(state())),
+        onStatus: (connection) => {
+          status.set('approval', connection);
+          if (connection !== 'ok') return;
+          // Also after every reconnect: confirms the feature is on and resyncs connected mods.
+          void ready.then((loaded) => {
+            notify(t.approvalActive(trust.logins(), !approval.trust ? 'memory' : loaded ? 'saved' : 'unloaded'));
+            feed.publishState(state());
+          });
+        },
+      });
+    })
+    .catch((error: unknown) => {
+      hostLog(`approval feed failed: ${String(error)}`);
+      status.set('approval', 'down');
+    });
+
+  return { gate, ready };
 }
 
 /** Twitch was unreachable at boot: keep trying, reload on success. */

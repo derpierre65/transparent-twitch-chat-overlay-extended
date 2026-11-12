@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Setup code for the chat approval userscript</title>
+    <link rel="stylesheet" href="/src/tool-page.css" />
+  </head>
+  <body>
+    <h1>Create setup code</h1>
+    <p>For the mods' Tampermonkey script. Everything happens in this browser, nothing is sent anywhere.</p>
+
+    <form id="setup" autocomplete="off">
+      <label>
+        Twitch channel
+        <small>Login of the channel where the buttons should appear.</small>
+        <input name="twitchChannel" required placeholder="yourlogin" />
+      </label>
+      <label>
+        Ably channel
+        <small>Must be exactly the channel the key is restricted to in Ably, and the same as <code>ablyChannel</code> in the overlay URL.</small>
+        <input name="ablyChannel" required value="overlay-approval" />
+      </label>
+      <label>
+        Mod's Ably key
+        <small>Key with <code>publish</code> and <code>subscribe</code>, format <code>app.keyid:secret</code>. Not the overlay key.</small>
+        <input name="ablyKey" required type="password" placeholder="xxxx.yyyy:zzzz" />
+      </label>
+      <label>
+        Mod name
+        <small>Shown in the overlay and to the other mods as the one who trusted or approved.</small>
+        <input name="modName" required maxlength="50" placeholder="ModName" />
+      </label>
+      <button type="submit">Create</button>
+    </form>
+
+    <label>
+      Setup code
+      <textarea id="code" readonly></textarea>
+    </label>
+    <button id="copy" type="button" disabled>Copy</button>
+    <p id="message"></p>
+
+    <script type="module" src="/src/setup-page.ts"></script>
+  </body>
+</html>

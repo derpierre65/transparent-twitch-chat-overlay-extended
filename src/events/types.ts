@@ -4,6 +4,8 @@ export interface Badge {
 }
 
 export interface Author {
+  /** Twitch user ID from the IRC `user-id` tag; empty if missing. */
+  id: string;
   login: string;
   displayName: string;
   color: string | null;
@@ -68,9 +70,10 @@ export type OverlayEvent =
       /** Only set for `timeout`. */
       seconds: number | null;
     })
-  | (BaseEvent & { type: 'notice'; text: string })
+  /** `silent`: shown without the sound, e.g. for the overlay's own hints. */
+  | (BaseEvent & { type: 'notice'; text: string; silent?: boolean })
   | (BaseEvent & { type: 'delete'; targetId: string })
   | (BaseEvent & { type: 'clear'; targetLogin: string | null });
 
-export type StatusKey = 'irc' | 'eventsub' | 'token';
+export type StatusKey = 'irc' | 'eventsub' | 'token' | 'approval';
 export type StatusState = 'ok' | 'down';

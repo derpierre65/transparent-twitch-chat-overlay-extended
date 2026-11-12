@@ -3,7 +3,7 @@ import { parseConfig } from './config';
 
 describe('parseConfig', () => {
   it('uses defaults for an empty query string', () => {
-    expect(parseConfig('')).toEqual({ maxLines: 50, fade: 60, demo: false, language: 'en' });
+    expect(parseConfig('')).toEqual({ maxLines: 50, fade: 60, demo: false, language: 'en', approval: null });
   });
 
   it('reads the language', () => {
@@ -43,5 +43,31 @@ describe('parseConfig', () => {
   it('treats demo=1 as enabled', () => {
     expect(parseConfig('?demo=1').demo).toBe(true);
     expect(parseConfig('?demo=0').demo).toBe(false);
+  });
+
+  it('keeps approval off unless ablyKey and ablyChannel are both set', () => {
+    expect(parseConfig('?ablyKey=k').approval).toBeNull();
+    expect(parseConfig('?ablyChannel=c').approval).toBeNull();
+    expect(parseConfig('?ablyKey=%20&ablyChannel=c').approval).toBeNull();
+  });
+
+  it('keeps trusted users in memory without trustUrl and trustSecret', () => {
+    expect(parseConfig('?ablyKey=app.key:secret&ablyChannel=overlay').approval).toEqual({
+      ablyKey: 'app.key:secret',
+      ablyChannel: 'overlay',
+      trust: null,
+    });
+    expect(parseConfig('?ablyKey=k&ablyChannel=c&trustUrl=https://w.example').approval?.trust).toBeNull();
+    expect(parseConfig('?ablyKey=k&ablyChannel=c&trustSecret=s').approval?.trust).toBeNull();
+  });
+
+  it('reads the trust worker and drops a trailing slash', () => {
+    const cfg = parseConfig('?ablyKey=k&ablyChannel=c&trustUrl=https://w.example/api/&trustSecret=s');
+    expect(cfg.approval?.trust).toEqual({ url: 'https://w.example/api', secret: 's' });
+  });
+
+  it('ignores a trustUrl that is not http(s)', () => {
+    expect(parseConfig('?ablyKey=k&ablyChannel=c&trustUrl=javascript:x&trustSecret=s').approval?.trust).toBeNull();
+    expect(parseConfig('?ablyKey=k&ablyChannel=c&trustUrl=nope&trustSecret=s').approval?.trust).toBeNull();
   });
 });

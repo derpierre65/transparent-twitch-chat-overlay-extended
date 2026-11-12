@@ -48,6 +48,8 @@ Chat and events always run for the account you connected with.
 
 All parameters are optional and can be combined, e.g.
 `https://extended-twitch-overlay.pages.dev/?language=de&fade=30&maxLines=20`.
+[`/generator.html`](https://extended-twitch-overlay.pages.dev/generator.html) builds the URL
+from a form, including the chat approval parameters.
 
 | Parameter | Values | Default | Effect |
 |---|---|---|---|
@@ -55,6 +57,10 @@ All parameters are optional and can be combined, e.g.
 | `fade` | seconds, `0`–`3600`, decimals allowed | `60`, `5` in demo mode | Time after which a line fades out. `0` disables fading. |
 | `maxLines` | `1`–`500` | `50` | Maximum number of visible lines. When another one arrives, the oldest is removed, even before `fade` has passed. |
 | `demo` | `1` | off | Plays synthetic chat lines and events without login or Twitch connection. Handy for styling. |
+| `ablyKey` | Ably API key | off | Turns on [message approval](#message-approval) together with `ablyChannel`. |
+| `ablyChannel` | Ably channel name | off | Channel the mods' userscript publishes to. |
+| `trustUrl` | `https://…` | off | Base URL of the trust worker. Without it (or without `trustSecret`) trusted users are kept in memory only and are lost on reload. |
+| `trustSecret` | string | off | Bearer secret of the trust worker. |
 
 Invalid values (e.g. `fade=abc` or negative numbers) fall back to the default, values that
 are too large are capped at the maximum. The channel cannot be chosen by parameter: chat
@@ -108,6 +114,15 @@ raids, etc.) are never delayed.
 The overlay reads the setting at startup and then every minute via the Helix API
 (`moderator:read:chat_settings`). Twitch does not report changes to it via EventSub.
 Without a valid token there is no delay.
+
+## Message approval
+
+Optional. With `ablyKey` and `ablyChannel` set, chat messages of viewers are held back until
+a mod either trusts the user or approves the single message via a userscript in the Twitch
+chat. Released messages still go through the [chat delay](#chat-delay).
+
+Setup (Ably, worker, overlay URL, userscript, setup codes), behavior and protocol:
+[chat-approval/README.md](chat-approval/README.md).
 
 ## Token storage
 

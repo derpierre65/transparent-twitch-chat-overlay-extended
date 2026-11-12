@@ -7,7 +7,7 @@ function chat(id: string, login: string, badges: string[] = []): OverlayEvent {
     id,
     ts: 0,
     type: 'chat',
-    author: { login, displayName: login, color: null, badges: badges.map((setId) => ({ setId, version: '1' })) },
+    author: { id: login, login, displayName: login, color: null, badges: badges.map((setId) => ({ setId, version: '1' })) },
     text: 'hi',
     twitchEmotes: [],
     action: false,
