@@ -18,6 +18,7 @@ export interface Messages {
   redemption(user: string, reward: string, cost: number): string;
   follow(user: string): string;
   hypetrain(phase: 'begin' | 'progress' | 'end', level: number): string;
+  adbreak(phase: 'begin' | 'end', seconds: number): string;
   ban(user: string, moderator: string): string;
   timeout(user: string, moderator: string, seconds: number): string;
   unban(user: string, moderator: string): string;
@@ -93,6 +94,8 @@ const en: Messages = {
   follow: (user) => `${user} is now following`,
   hypetrain: (phase, level) =>
     `Hype Train ${{ begin: 'started', progress: 'in progress', end: 'ended' }[phase]} — Level ${level}`,
+  adbreak: (phase, seconds) =>
+    phase === 'begin' ? `Ad break started — ${seconds} seconds` : 'Ad break is over',
   ban: (user, moderator) => `${user} was banned by ${moderator}`,
   timeout: (user, moderator, seconds) =>
     `${user} was timed out for ${duration(seconds, EN_UNITS)} by ${moderator}`,
@@ -136,6 +139,8 @@ const de: Messages = {
   follow: (user) => `${user} folgt jetzt`,
   hypetrain: (phase, level) =>
     `Hype Train ${{ begin: 'startet', progress: 'läuft', end: 'endet' }[phase]} — Level ${level}`,
+  adbreak: (phase, seconds) =>
+    phase === 'begin' ? `Werbung läuft — ${seconds} Sekunden` : 'Werbung ist vorbei',
   ban: (user, moderator) => `${user} wurde von ${moderator} gebannt`,
   timeout: (user, moderator, seconds) =>
     `${user} wurde von ${moderator} für ${duration(seconds, DE_UNITS)} getimeoutet`,

@@ -1,7 +1,7 @@
 # Transparent Twitch Chat Overlay Extended
 
 Chat plus raids, subs, gift subs, announcements, channel point redemptions, bits,
-follows, hype trains and moderation actions (bans, timeouts, unbans) — as a Custom URL for
+follows, hype trains, ad breaks and moderation actions (bans, timeouts, unbans) — as a Custom URL for
 [Transparent-Twitch-Chat-Overlay](https://github.com/baffler/Transparent-Twitch-Chat-Overlay).
 
 ## Development
@@ -75,7 +75,9 @@ them without a redeploy, use Settings → Chat → Custom CSS in the host app, e
 :root { --font-size: 26px; --raid: rgba(255, 0, 0, 0.5); }
 ```
 
-Moderation lines use `--ban`, `--timeout` and `--unban`.
+Moderation lines use `--ban`, `--timeout` and `--unban`. Ad break lines use `--adbreak`
+(start) and `--adbreak-end`. Twitch only reports the start of an ad break; the end line
+is shown after the announced duration and is an estimate.
 
 ## Client ID
 
@@ -93,8 +95,8 @@ After changing an env file, rebuild (`npm run build`) or restart the dev server.
 ## Token
 
 Device Code Flow for public clients. Scopes: `channel:read:redemptions`,
-`moderator:read:followers`, `channel:read:hype_train`, `moderator:read:chat_settings` and
-`channel:moderate`. Twitch requires the last one for ban, timeout and unban events; there
+`moderator:read:followers`, `channel:read:hype_train`, `moderator:read:chat_settings`,
+`channel:read:ads` and `channel:moderate`. Twitch requires the last one for ban, timeout and unban events; there
 is no read-only scope for them. The overlay itself never performs moderation actions. The
 Twitch app must have the client type **Public** in the developer console; no redirect URLs
 are needed.

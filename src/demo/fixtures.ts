@@ -50,6 +50,8 @@ export function demoEvents(): OverlayEvent[] {
     },
     { id: 'd14', ts: Date.now(), type: 'follow', user: 'FreshFollower' },
     { id: 'd15', ts: Date.now(), type: 'hypetrain', phase: 'begin', level: 1 },
+    { id: 'd15a', ts: Date.now(), type: 'adbreak', phase: 'begin', seconds: 90, endsAt: Date.now() + 90_000 },
+    { id: 'd15b', ts: Date.now(), type: 'adbreak', phase: 'end', seconds: 90, endsAt: Date.now() },
     { id: 'd16', ts: Date.now(), type: 'notice', text: 'Unknown USERNOTICE type as system text' },
     { id: 'd17', ts: Date.now(), type: 'moderation', action: 'timeout', user: 'Troublemaker', moderator: 'Moderator', reason: 'Caps', seconds: 600 },
     { id: 'd18', ts: Date.now(), type: 'moderation', action: 'ban', user: 'Spambot', moderator: 'Moderator', reason: null, seconds: null },

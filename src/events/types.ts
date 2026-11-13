@@ -62,6 +62,13 @@ export type OverlayEvent =
   | (BaseEvent & { type: 'follow'; user: string })
   | (BaseEvent & { type: 'hypetrain'; phase: 'begin' | 'progress' | 'end'; level: number })
   | (BaseEvent & {
+      type: 'adbreak';
+      phase: 'begin' | 'end';
+      seconds: number;
+      /** Estimated end in epoch ms; Twitch sends no end event. */
+      endsAt: number;
+    })
+  | (BaseEvent & {
       type: 'moderation';
       action: 'ban' | 'timeout' | 'unban';
       user: string;

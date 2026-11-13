@@ -96,6 +96,11 @@ describe('renderEvent — events', () => {
     },
     { event: { id: '9', ts: 0, type: 'follow', user: 'h' }, cls: 'line--follow', contains: 'h' },
     { event: { id: '10', ts: 0, type: 'hypetrain', phase: 'begin', level: 2 }, cls: 'line--hypetrain', contains: '2' },
+    {
+      event: { id: '10a', ts: 0, type: 'adbreak', phase: 'begin', seconds: 90, endsAt: 0 },
+      cls: 'line--adbreak-begin',
+      contains: '90',
+    },
     { event: { id: '11', ts: 0, type: 'notice', text: 'unknown notice' }, cls: 'line--notice', contains: 'unknown notice' },
   ];
 

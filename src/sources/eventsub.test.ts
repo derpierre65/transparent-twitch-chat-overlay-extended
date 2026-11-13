@@ -101,6 +101,28 @@ describe('createEventSubSource', () => {
     expect(events[0]).toMatchObject({ type: 'follow', user: 'Newbie' });
   });
 
+  it('emits an ad break end once the announced duration has passed', () => {
+    const { source, sockets, events, timers } = setup();
+    source.connect();
+    sockets[0]!.onmessage?.({ data: welcome() });
+    const startedAt = new Date().toISOString();
+
+    sockets[0]!.onmessage?.({
+      data: JSON.stringify({
+        metadata: { message_type: 'notification', message_id: 'ad1', subscription_type: 'channel.ad_break.begin' },
+        payload: { event: { duration_seconds: 60, started_at: startedAt } },
+      }),
+    });
+
+    expect(events).toEqual([expect.objectContaining({ type: 'adbreak', phase: 'begin' })]);
+    const end = timers.at(-1)!;
+    expect(end.ms).toBeGreaterThan(55_000);
+    expect(end.ms).toBeLessThanOrEqual(60_000);
+
+    end.fn();
+    expect(events[1]).toMatchObject({ type: 'adbreak', phase: 'end', id: 'ad1-end' });
+  });
+
   it('ignores a duplicate message id', () => {
     const { source, sockets, events } = setup();
     source.connect();

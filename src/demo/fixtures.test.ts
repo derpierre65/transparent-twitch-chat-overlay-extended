@@ -16,6 +16,7 @@ describe('demoEvents', () => {
       'redemption',
       'follow',
       'hypetrain',
+      'adbreak',
       'notice',
     ]) {
       expect(types).toContain(type);

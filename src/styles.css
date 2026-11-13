@@ -11,6 +11,8 @@
   --bits: rgba(255, 0, 128, 0.3);
   --follow: rgba(0, 255, 128, 0.25);
   --hypetrain: rgba(255, 200, 0, 0.35);
+  --adbreak: rgba(255, 60, 160, 0.35);
+  --adbreak-end: rgba(120, 120, 120, 0.35);
   --announcement: rgba(0, 200, 100, 0.3);
   --ban: rgba(220, 0, 0, 0.35);
   --timeout: rgba(220, 90, 0, 0.3);
@@ -51,6 +53,8 @@ body {
 .line--bits { background: var(--bits); }
 .line--follow { background: var(--follow); }
 .line--hypetrain { background: var(--hypetrain); }
+.line--adbreak-begin { background: var(--adbreak); }
+.line--adbreak-end { background: var(--adbreak-end); }
 .line--announcement { background: var(--announcement); }
 .line--ban { background: var(--ban); }
 .line--timeout { background: var(--timeout); }

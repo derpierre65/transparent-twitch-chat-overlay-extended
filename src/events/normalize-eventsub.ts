@@ -8,6 +8,12 @@ function int(value: unknown): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0;
 }
 
+// Twitch documents numbers, but its example payload sends strings.
+function looseInt(value: unknown): number {
+  const n = typeof value === 'string' ? Number(value) : value;
+  return int(n);
+}
+
 function timeoutSeconds(start: unknown, end: unknown): number {
   const ms = Date.parse(str(end)) - Date.parse(str(start));
   return Number.isFinite(ms) && ms > 0 ? Math.round(ms / 1000) : 0;
@@ -42,6 +48,13 @@ export function normalizeEventSub(
     case 'channel.hype_train.end': {
       const phase = subscriptionType.split('.').pop() as 'begin' | 'progress' | 'end';
       return { ...base, type: 'hypetrain', phase, level: int(event['level']) };
+    }
+
+    case 'channel.ad_break.begin': {
+      const seconds = looseInt(event['duration_seconds']);
+      const started = Date.parse(str(event['started_at']));
+      const start = Number.isFinite(started) ? started : base.ts;
+      return { ...base, type: 'adbreak', phase: 'begin', seconds, endsAt: start + seconds * 1000 };
     }
 
     case 'channel.ban': {

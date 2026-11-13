@@ -123,6 +123,12 @@ export function renderEvent(event: OverlayEvent, ctx: RenderContext): HTMLElemen
       return el;
     }
 
+    case 'adbreak': {
+      const el = line('line--adbreak', `line--adbreak-${event.phase}`);
+      el.append(body(t.adbreak(event.phase, event.seconds)));
+      return el;
+    }
+
     case 'moderation': {
       const el = line('line--moderation', `line--${event.action}`);
       const text =

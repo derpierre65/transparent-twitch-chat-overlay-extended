@@ -49,6 +49,22 @@ describe('normalizeEventSub', () => {
     expect(normalizeEventSub('channel.hype_train.end', { level: 5 }, 'm6')).toMatchObject({ phase: 'end' });
   });
 
+  it('maps an ad break and estimates its end', () => {
+    expect(
+      normalizeEventSub(
+        'channel.ad_break.begin',
+        { duration_seconds: 90, started_at: '2026-01-01T00:00:00Z', is_automatic: true },
+        'm9',
+      ),
+    ).toMatchObject({ type: 'adbreak', phase: 'begin', seconds: 90, endsAt: Date.parse('2026-01-01T00:01:30Z') });
+  });
+
+  it('accepts the ad duration as a string like in the Twitch docs example', () => {
+    expect(normalizeEventSub('channel.ad_break.begin', { duration_seconds: '60' }, 'm10')).toMatchObject({
+      seconds: 60,
+    });
+  });
+
   it('uses the message id so duplicates stay identifiable', () => {
     expect(normalizeEventSub('channel.follow', { user_name: 'x' }, 'm7')?.id).toBe('m7');
   });

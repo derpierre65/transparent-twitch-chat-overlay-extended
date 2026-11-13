@@ -45,6 +45,12 @@ export const TOPICS: Topic[] = [
     condition: (id) => ({ broadcaster_user_id: id }),
   },
   {
+    type: 'channel.ad_break.begin',
+    version: '1',
+    scope: 'channel:read:ads',
+    condition: (id) => ({ broadcaster_user_id: id }),
+  },
+  {
     type: 'channel.ban',
     version: '1',
     scope: 'channel:moderate',
@@ -139,6 +145,13 @@ export function createEventSubSource(opts: {
     opts.onStatus('ok');
   }
 
+  function scheduleAdEnd(begin: Extract<OverlayEvent, { type: 'adbreak' }>): void {
+    schedule(
+      () => opts.emit({ ...begin, id: `${begin.id}-end`, ts: Date.now(), phase: 'end' }),
+      Math.max(0, begin.endsAt - Date.now()),
+    );
+  }
+
   function remember(messageId: string): boolean {
     if (seen.has(messageId)) return false;
     seen.add(messageId);
@@ -199,6 +212,7 @@ export function createEventSubSource(opts: {
         messageId,
       );
       if (event) opts.emit(event);
+      if (event?.type === 'adbreak') scheduleAdEnd(event);
     }
   }
 

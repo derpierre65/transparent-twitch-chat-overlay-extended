@@ -5,6 +5,7 @@ export const SCOPES = [
   // Required for channel.ban/unban; Twitch offers no read-only scope for them.
   'channel:moderate',
   'moderator:read:chat_settings',
+  'channel:read:ads',
 ];
 
 export const TOKEN_KEY = 'overlay.token';

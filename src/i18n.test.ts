@@ -47,6 +47,12 @@ describe('MESSAGES', () => {
     expect(MESSAGES.de.resub('a', 3, null)).toBe('a ist seit 3 Monaten dabei');
   });
 
+  it('formats ad breaks in exact seconds', () => {
+    expect(MESSAGES.en.adbreak('begin', 90)).toBe('Ad break started — 90 seconds');
+    expect(MESSAGES.de.adbreak('begin', 90)).toBe('Werbung läuft — 90 Sekunden');
+    expect(MESSAGES.de.adbreak('end', 90)).toBe('Werbung ist vorbei');
+  });
+
   it('formats moderation actions with a readable timeout duration', () => {
     expect(MESSAGES.en.ban('Troll', 'Mod')).toBe('Troll was banned by Mod');
     expect(MESSAGES.en.timeout('Troll', 'Mod', 600)).toBe('Troll was timed out for 10 minutes by Mod');
