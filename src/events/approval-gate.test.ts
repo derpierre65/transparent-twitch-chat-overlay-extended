@@ -50,6 +50,20 @@ describe('createApprovalGate', () => {
     expect(emitted).toEqual(['m1', 'm2']);
   });
 
+  it('reports only held messages', () => {
+    const held: string[] = [];
+    trusted.set('2', 'friend');
+    const g = gate({ onHeld: (e) => held.push(e.id) });
+    g.command({ type: 'approve-message', messageId: 'm4', login: null, by: null });
+
+    g.handle(chat('m1', '1'));
+    g.handle(chat('m2', '2'));
+    g.handle(chat('m3', '3', 'mod', ['moderator']));
+    g.handle(chat('m4', '4'));
+
+    expect(held).toEqual(['m1']);
+  });
+
   it('holds vip messages like any other viewer', () => {
     gate().handle(chat('m1', '1', 'vip', ['vip']));
 

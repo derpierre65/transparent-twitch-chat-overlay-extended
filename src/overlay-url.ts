@@ -14,6 +14,7 @@ export interface OverlayUrlInput {
   ablyChannel: string;
   trustUrl: string;
   trustSecret: string;
+  heldNotice: boolean;
 }
 
 export type OverlayUrlResult = { url: string } | { error: string };
@@ -63,6 +64,7 @@ export function buildOverlayUrl(input: OverlayUrlInput): OverlayUrlResult {
   if (!trustUrl !== !trustSecret) return { error: 'The worker needs both its URL and its secret.' };
   if (trustUrl && !ablyKey) return { error: 'The worker only works together with the Ably key and channel.' };
   if (trustUrl && !isHttpUrl(trustUrl)) return { error: 'Worker URL must start with https:// or http://.' };
+  if (input.heldNotice && !ablyKey) return { error: 'The held message notice only works together with the Ably key and channel.' };
 
   if (ablyKey) {
     set('ablyKey', ablyKey);
@@ -72,6 +74,7 @@ export function buildOverlayUrl(input: OverlayUrlInput): OverlayUrlResult {
     set('trustUrl', trustUrl);
     set('trustSecret', trustSecret);
   }
+  if (input.heldNotice) set('heldNotice', '1');
 
   return { url: url.href };
 }

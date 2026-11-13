@@ -29,6 +29,8 @@ describe('MESSAGES', () => {
     expect(MESSAGES.en.approvalApproved(null, 'Mod')).toBe('Message approved by Mod');
     expect(MESSAGES.de.approvalTrusted('alice', null)).toBe('alice von einem Mod als vertrauenswürdig markiert');
     expect(MESSAGES.de.approvalApproved('bob', 'Mod')).toBe('Nachricht von bob von Mod freigegeben');
+    expect(MESSAGES.en.approvalHeld('bob')).toBe('bob wrote a message that awaits approval');
+    expect(MESSAGES.de.approvalHeld('bob')).toBe('bob hat geschrieben, die Nachricht wartet auf Freigabe');
   });
 
   it('shortens a long list of trusted users', () => {

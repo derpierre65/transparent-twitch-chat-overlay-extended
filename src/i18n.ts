@@ -30,6 +30,7 @@ export interface Messages {
   approvalTrusted(login: string, by: string | null): string;
   approvalUntrusted(login: string, by: string | null): string;
   approvalApproved(login: string | null, by: string | null): string;
+  approvalHeld(login: string): string;
   login: {
     title: string;
     intro: string;
@@ -112,6 +113,7 @@ const en: Messages = {
   approvalTrusted: (login, by) => `${login} trusted by ${by ?? 'a mod'}`,
   approvalUntrusted: (login, by) => `${login} untrusted by ${by ?? 'a mod'}`,
   approvalApproved: (login, by) => `${login ? `Message from ${login}` : 'Message'} approved by ${by ?? 'a mod'}`,
+  approvalHeld: (login) => `${login} wrote a message that awaits approval`,
   login: {
     title: 'Connect with Twitch',
     intro: 'Open the link in your own browser and confirm there. The overlay signs in by itself afterwards.',
@@ -157,6 +159,7 @@ const de: Messages = {
   approvalTrusted: (login, by) => `${login} von ${by ?? 'einem Mod'} als vertrauenswürdig markiert`,
   approvalUntrusted: (login, by) => `${login} von ${by ?? 'einem Mod'} nicht mehr vertraut`,
   approvalApproved: (login, by) => `${login ? `Nachricht von ${login}` : 'Nachricht'} von ${by ?? 'einem Mod'} freigegeben`,
+  approvalHeld: (login) => `${login} hat geschrieben, die Nachricht wartet auf Freigabe`,
   login: {
     title: 'Mit Twitch verbinden',
     intro: 'Link im eigenen Browser öffnen und dort bestätigen. Das Overlay meldet sich danach von selbst an.',

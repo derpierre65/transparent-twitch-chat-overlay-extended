@@ -61,6 +61,7 @@ from a form, including the chat approval parameters.
 | `ablyChannel` | Ably channel name | off | Channel the mods' userscript publishes to. |
 | `trustUrl` | `https://…` | off | Base URL of the trust worker. Without it (or without `trustSecret`) trusted users are kept in memory only and are lost on reload. |
 | `trustSecret` | string | off | Bearer secret of the trust worker. |
+| `heldNotice` | `1` | off | With message approval on: shows a notice with the user name when a message is held back. At most one per user per minute; the message text is never shown. |
 
 Invalid values (e.g. `fade=abc` or negative numbers) fall back to the default, values that
 are too large are capped at the maximum. The channel cannot be chosen by parameter: chat

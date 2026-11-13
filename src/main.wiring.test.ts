@@ -240,6 +240,19 @@ describe('bootstrap wiring', () => {
     await vi.waitFor(() => expect(log?.textContent).toContain('delayed hello'), { timeout: 4000 });
   });
 
+  it('names the author of a held message with heldNotice=1, without its text', async () => {
+    window.history.replaceState({}, '', '/?ablyKey=app.key:sub&ablyChannel=mods&heldNotice=1');
+    localStorage.setItem('overlay.identity', JSON.stringify({ login: 'derpierre65', userId: '' }));
+    FakeSocket.privmsg = VIEWER_PRIVMSG;
+    await import('./main');
+
+    const log = document.getElementById('log');
+    await vi.waitFor(() => expect(log?.textContent).toContain('viewer wrote a message that awaits approval'), {
+      timeout: 4000,
+    });
+    expect(log?.textContent).not.toContain('delayed hello');
+  });
+
   it('announces mod actions silently and answers sync requests with the state', async () => {
     window.history.replaceState({}, '', '/?ablyKey=app.key:sub&ablyChannel=mods');
     localStorage.setItem('overlay.identity', JSON.stringify({ login: 'derpierre65', userId: '' }));

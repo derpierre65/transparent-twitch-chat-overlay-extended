@@ -56,6 +56,7 @@ describe('parseConfig', () => {
       ablyKey: 'app.key:secret',
       ablyChannel: 'overlay',
       trust: null,
+      heldNotice: false,
     });
     expect(parseConfig('?ablyKey=k&ablyChannel=c&trustUrl=https://w.example').approval?.trust).toBeNull();
     expect(parseConfig('?ablyKey=k&ablyChannel=c&trustSecret=s').approval?.trust).toBeNull();
@@ -64,6 +65,11 @@ describe('parseConfig', () => {
   it('reads the trust worker and drops a trailing slash', () => {
     const cfg = parseConfig('?ablyKey=k&ablyChannel=c&trustUrl=https://w.example/api/&trustSecret=s');
     expect(cfg.approval?.trust).toEqual({ url: 'https://w.example/api', secret: 's' });
+  });
+
+  it('treats heldNotice=1 as enabled', () => {
+    expect(parseConfig('?ablyKey=k&ablyChannel=c&heldNotice=1').approval?.heldNotice).toBe(true);
+    expect(parseConfig('?ablyKey=k&ablyChannel=c&heldNotice=0').approval?.heldNotice).toBe(false);
   });
 
   it('ignores a trustUrl that is not http(s)', () => {

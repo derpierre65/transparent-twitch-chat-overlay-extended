@@ -11,6 +11,7 @@ const empty: OverlayUrlInput = {
   ablyChannel: '',
   trustUrl: '',
   trustSecret: '',
+  heldNotice: false,
 };
 
 function url(input: Partial<OverlayUrlInput>): string {
@@ -40,6 +41,7 @@ describe('buildOverlayUrl', () => {
         ablyChannel: 'overlay-approval',
         trustUrl: 'https://trust.example.workers.dev/',
         trustSecret: 'a+b/c',
+        heldNotice: true,
       }),
     );
     expect(parseConfig(built.search)).toEqual({
@@ -51,6 +53,7 @@ describe('buildOverlayUrl', () => {
         ablyKey: 'app.key:se&cret=',
         ablyChannel: 'overlay-approval',
         trust: { url: 'https://trust.example.workers.dev', secret: 'a+b/c' },
+        heldNotice: true,
       },
     });
   });
@@ -68,6 +71,7 @@ describe('buildOverlayUrl', () => {
     expect(error({ ablyKey: 'app.key:secret' })).toBeDefined();
     expect(error({ ablyKey: 'a.b:c', ablyChannel: 'x', trustUrl: 'https://w.dev' })).toBeDefined();
     expect(error({ trustUrl: 'https://w.dev', trustSecret: 's' })).toBeDefined();
+    expect(error({ heldNotice: true })).toBeDefined();
     expect(error({ ablyKey: 'a.b:c', ablyChannel: 'x', trustUrl: 'ftp://w.dev', trustSecret: 's' })).toBeDefined();
   });
 });

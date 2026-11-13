@@ -6,6 +6,7 @@ import { authenticate, type Session } from './auth/session';
 import { emptyBadgeIndex, loadBadges, type BadgeIndex } from './badges/badges';
 import { CLIENT_ID } from './client-id';
 import type { ApprovalCommand } from './approval/commands';
+import { createHeldNotice } from './approval/held-notice';
 import { createApprovalLog, splitState } from './approval/state';
 import { createTrustStore } from './approval/trust-store';
 import { parseConfig, type ApprovalConfig } from './config';
@@ -196,7 +197,15 @@ function startApproval(
     channel,
     onLoaded: () => gate.releaseTrusted(),
   });
-  const gate = createApprovalGate({ emit, trust });
+  const heldNotice = approval.heldNotice ? createHeldNotice({ notify: (login) => notify(t.approvalHeld(login)) }) : null;
+  const gate = createApprovalGate({
+    emit,
+    trust,
+    // Until the list has loaded, trusted users are held too and must not be reported.
+    onHeld: heldNotice
+      ? (event) => void ready.then(() => !trust.has(event.author.id) && heldNotice(event))
+      : undefined,
+  });
   const approvals = createApprovalLog();
   const ready = trust.load();
   trust.start();

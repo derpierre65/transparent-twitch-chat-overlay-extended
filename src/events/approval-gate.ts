@@ -22,6 +22,7 @@ export interface ApprovalGate {
 export function createApprovalGate(opts: {
   emit: (event: OverlayEvent) => void;
   trust: TrustList;
+  onHeld?: (event: ChatEvent) => void;
   now?: () => number;
   maxHeld?: number;
   maxAgeMs?: number;
@@ -75,6 +76,7 @@ export function createApprovalGate(opts: {
         } else {
           held.push({ event, at: now() });
           if (held.length > maxHeld) held.shift();
+          opts.onHeld?.(event);
         }
         return;
       }

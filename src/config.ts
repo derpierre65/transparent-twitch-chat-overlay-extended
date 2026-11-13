@@ -5,6 +5,8 @@ export interface ApprovalConfig {
   ablyChannel: string;
   /** `null`: trusted users live in memory only. */
   trust: { url: string; secret: string } | null;
+  /** Shows a notice when a message is held. */
+  heldNotice: boolean;
 }
 
 export interface OverlayConfig {
@@ -47,7 +49,12 @@ function parseApproval(params: URLSearchParams): ApprovalConfig | null {
 
   const url = httpUrl(text(params, 'trustUrl'));
   const secret = text(params, 'trustSecret');
-  return { ablyKey, ablyChannel, trust: url && secret ? { url, secret } : null };
+  return {
+    ablyKey,
+    ablyChannel,
+    trust: url && secret ? { url, secret } : null,
+    heldNotice: params.get('heldNotice') === '1',
+  };
 }
 
 export function parseConfig(search: string): OverlayConfig {

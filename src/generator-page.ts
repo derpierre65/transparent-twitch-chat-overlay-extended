@@ -25,6 +25,7 @@ function update(): void {
     ablyChannel: value('ablyChannel'),
     trustUrl: value('trustUrl'),
     trustSecret: value('trustSecret'),
+    heldNotice: field<HTMLInputElement>('heldNotice').checked,
   });
   const error = 'error' in result ? result.error : '';
   message.textContent = error;
