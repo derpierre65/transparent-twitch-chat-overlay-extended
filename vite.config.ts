@@ -4,7 +4,7 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   server: { port: 5173, strictPort: true },
   build: {
-    rollupOptions: { input: { main: 'index.html', token: 'token.html', generator: 'generator.html' } },
+    rollupOptions: { input: { main: 'index.html', token: 'token.html', generator: 'generator.html', mod: 'mod.html' } },
   },
   test: {
     environment: 'jsdom',

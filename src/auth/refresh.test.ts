@@ -69,4 +69,16 @@ describe('createTokenRefresher', () => {
 
     expect(await refresher(fetchFn).refresh(null)).toEqual({ status: 'rejected' });
   });
+
+  it('keeps another profile apart from the overlay tokens', async () => {
+    const profile = { scopes: [], tokenKey: 'mod.token', refreshKey: 'mod.refresh', lockPrefix: 'mod' };
+    writeTokens(storage, { accessToken: 'mod-old', refreshToken: 'mod-r1' }, profile);
+    const fetchFn = fetchSequence(json({ access_token: 'mod-new', refresh_token: 'mod-r2' }));
+    const modRefresher = createTokenRefresher({ clientId: 'cid', storage, profile, fetchFn: fetchFn as unknown as typeof fetch });
+
+    expect(await modRefresher.refresh('mod-old')).toEqual({ status: 'ok', value: 'mod-new' });
+    expect(sentBody(fetchFn).get('refresh_token')).toBe('mod-r1');
+    expect(readToken(storage)).toBe('old');
+    expect(readToken(storage, profile)).toBe('mod-new');
+  });
 });

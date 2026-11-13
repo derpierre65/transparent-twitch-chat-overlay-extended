@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Chat approval – mod view</title>
+    <link rel="stylesheet" href="/src/mod/mod.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <div class="bar__row">
+        <select id="setup" aria-label="Setup code"></select>
+        <button id="remove" type="button" class="secondary" title="Remove this setup code from this browser">Remove</button>
+        <form id="add" class="bar__add" autocomplete="off">
+          <input id="code" type="password" placeholder="Paste setup code from the streamer" aria-label="Setup code" />
+          <button type="submit">Add</button>
+        </form>
+      </div>
+      <div class="bar__row">
+        <span id="twitch" class="twitch"></span>
+        <button id="login" type="button" hidden>Log in with Twitch</button>
+        <button id="logout" type="button" class="secondary" hidden>Log out</button>
+        <span class="bar__spacer"></span>
+        <span id="state" class="state"></span>
+      </div>
+      <p id="message" class="message" role="status"></p>
+    </header>
+    <main id="chat" class="chat"></main>
+    <script type="module" src="/src/mod/main.ts"></script>
+  </body>
+</html>

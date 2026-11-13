@@ -1,4 +1,4 @@
-import { SCOPES, parseTokenPair, writeTokens, type TokenPair } from './oauth';
+import { OVERLAY_PROFILE, SCOPES, parseTokenPair, writeTokens, type AuthProfile, type TokenPair } from './oauth';
 
 const DEFAULT_INTERVAL_S = 5;
 const SLOW_DOWN_STEP_S = 5;
@@ -22,11 +22,15 @@ export type PollResult =
   | { kind: 'expired' }
   | { kind: 'retry' };
 
-export async function requestDeviceCode(clientId: string, fetchFn: typeof fetch = fetch): Promise<DeviceCode | null> {
+export async function requestDeviceCode(
+  clientId: string,
+  fetchFn: typeof fetch = fetch,
+  scopes: string[] = SCOPES,
+): Promise<DeviceCode | null> {
   try {
     const response = await fetchFn('https://id.twitch.tv/oauth2/device', {
       method: 'POST',
-      body: new URLSearchParams({ client_id: clientId, scopes: SCOPES.join(' ') }),
+      body: new URLSearchParams({ client_id: clientId, scopes: scopes.join(' ') }),
     });
     if (!response.ok) return null;
 
@@ -55,6 +59,7 @@ export async function pollDeviceToken(
   clientId: string,
   deviceCode: string,
   fetchFn: typeof fetch = fetch,
+  scopes: string[] = SCOPES,
 ): Promise<PollResult> {
   let response: Response;
   try {
@@ -62,7 +67,7 @@ export async function pollDeviceToken(
       method: 'POST',
       body: new URLSearchParams({
         client_id: clientId,
-        scopes: SCOPES.join(' '),
+        scopes: scopes.join(' '),
         device_code: deviceCode,
         grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
       }),
@@ -93,6 +98,7 @@ export interface DeviceLogin {
 export function startDeviceLogin(opts: {
   clientId: string;
   storage: Storage;
+  profile?: AuthProfile;
   onCode: (code: DeviceCode) => void;
   onStatus: (status: DeviceLoginStatus) => void;
   onSuccess: () => void;
@@ -104,6 +110,7 @@ export function startDeviceLogin(opts: {
   const schedule = opts.setTimeoutFn ?? setTimeout;
   const unschedule = opts.clearTimeoutFn ?? clearTimeout;
   const now = opts.now ?? Date.now;
+  const profile = opts.profile ?? OVERLAY_PROFILE;
 
   let stopped = false;
   let timer: ReturnType<typeof setTimeout> | null = null;
@@ -119,7 +126,7 @@ export function startDeviceLogin(opts: {
   }
 
   async function requestCode(): Promise<void> {
-    const next = await requestDeviceCode(opts.clientId, opts.fetchFn);
+    const next = await requestDeviceCode(opts.clientId, opts.fetchFn, profile.scopes);
     if (stopped) return;
     if (!next) {
       opts.onStatus('unreachable');
@@ -148,13 +155,13 @@ export function startDeviceLogin(opts: {
       return;
     }
 
-    const result = await pollDeviceToken(opts.clientId, code.deviceCode, opts.fetchFn);
+    const result = await pollDeviceToken(opts.clientId, code.deviceCode, opts.fetchFn, profile.scopes);
     if (stopped) return;
 
     switch (result.kind) {
       case 'ok':
         stopped = true;
-        writeTokens(opts.storage, result.pair);
+        writeTokens(opts.storage, result.pair, profile);
         opts.onSuccess();
         return;
       case 'pending':

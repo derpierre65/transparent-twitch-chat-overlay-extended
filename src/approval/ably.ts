@@ -2,10 +2,8 @@ import * as Ably from 'ably';
 import type { StatusState } from '../events/types';
 import { hostLog } from '../host/log';
 import { parseApprovalCommand, type ApprovalCommand } from './commands';
+import { OVERLAY_CLIENT_ID } from './overlay-id';
 import type { StatePart } from './state';
-
-/** Presence and `state` messages carry this clientId, so userscripts can tell the overlay apart. */
-export const OVERLAY_CLIENT_ID = 'overlay';
 
 export interface ApprovalFeed {
   publishState(parts: StatePart[]): void;

@@ -120,8 +120,9 @@ Without a valid token there is no delay.
 ## Message approval
 
 Optional. With `ablyKey` and `ablyChannel` set, chat messages of viewers are held back until
-a mod either trusts the user or approves the single message via a userscript in the Twitch
-chat. Released messages still go through the [chat delay](#chat-delay).
+a mod either trusts the user or approves the single message, either via a userscript in the
+Twitch chat or on the mod page `/mod.html`. Released messages still go through the
+[chat delay](#chat-delay).
 
 Setup (Ably, worker, overlay URL, userscript, setup codes), behavior and protocol:
 [chat-approval/README.md](chat-approval/README.md).
@@ -132,3 +133,6 @@ Access and refresh tokens are stored in the page's `localStorage`. The chat conn
 **anonymously** (`justinfan`), independent of the token. If the token is invalid, the
 chat of the last connected account keeps running and only the EventSub events are
 missing.
+
+The mod page (`/mod.html`) keeps its own tokens under `mod.token`/`mod.refresh`, so a mod
+login in the same browser never replaces the overlay's.

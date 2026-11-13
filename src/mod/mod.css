@@ -1,0 +1,152 @@
+@import '../login.css';
+
+:root {
+  --font: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --bg: #0e0e10;
+  --panel: #18181b;
+  --border: #2f2f35;
+  --text: #efeff1;
+  --muted: #adadb8;
+  --accent: #9147ff;
+  --ok: #00c26b;
+  --held: #e6a700;
+  --error: #eb0400;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.5 var(--font);
+}
+
+button {
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--accent);
+  color: #fff;
+  font: 600 13px var(--font);
+  cursor: pointer;
+}
+button:hover { background: #772ce8; }
+button:disabled { opacity: 0.5; cursor: default; }
+button.secondary { background: #3a3a3d; }
+button.secondary:hover { background: #53535f; }
+
+select,
+input {
+  padding: 5px 8px;
+  border: 1px solid #464649;
+  border-radius: 4px;
+  background: var(--bg);
+  color: inherit;
+  font: inherit;
+}
+
+.bar {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.bar__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.bar__add {
+  display: flex;
+  flex: 1;
+  gap: 6px;
+  min-width: 260px;
+}
+.bar__add input { flex: 1; min-width: 0; }
+#setup { max-width: 100%; }
+.bar__spacer { flex: 1; }
+.twitch { color: var(--muted); }
+
+.state { display: flex; gap: 10px; color: var(--muted); font-size: 12px; }
+.dot::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: var(--error);
+}
+.dot.is-ok::before { background: var(--ok); }
+
+.message { min-height: 0; margin: 0; color: var(--ok); white-space: pre-line; }
+.message:empty { display: none; }
+.message.is-error { color: #ff8280; }
+
+.chat {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0;
+  overflow-wrap: anywhere;
+}
+.chat.is-empty { padding: 24px; color: var(--muted); }
+
+.line { padding: 3px 12px 3px 9px; border-left: 3px solid transparent; }
+.line:hover { background: #1f1f23; }
+.line--notice { color: var(--muted); font-style: italic; }
+.line--raid { background: rgba(255, 128, 0, 0.18); }
+.line--sub, .line--resub, .line--giftsub, .line--subbomb { background: rgba(145, 70, 255, 0.18); }
+.line--announcement { background: rgba(0, 200, 100, 0.15); }
+.line--bits { background: rgba(255, 0, 128, 0.15); }
+
+/* Left edge: what the overlay does with the message. */
+.mod-line.is-held { border-left-color: var(--held); }
+.mod-line.is-shown { border-left-color: var(--ok); }
+.mod-line.is-deleted .msg { color: var(--muted); text-decoration: line-through; }
+.mod-line.is-cleared { opacity: 0.45; }
+
+.time { margin-right: 6px; color: var(--muted); font-size: 12px; }
+.badge { height: 18px; margin-right: 3px; vertical-align: middle; }
+.emote { max-height: 28px; vertical-align: middle; }
+.emote--zero { margin-left: -28px; }
+.user { font-weight: 700; }
+
+.acts { display: inline-flex; gap: 2px; margin-right: 6px; vertical-align: middle; }
+.act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--muted);
+}
+.act:hover { background: rgba(83, 83, 95, 0.48); color: var(--text); }
+.act:disabled { opacity: 0.3; }
+.act svg { width: 15px; height: 15px; fill: currentColor; pointer-events: none; }
+/* White like Twitch's mod icons. */
+.act[data-action='delete'],
+.act[data-action='timeout'],
+.act[data-action='ban'] { color: var(--text); }
+.act[data-action='delete']:hover,
+.act[data-action='timeout']:hover,
+.act[data-action='ban']:hover { color: #ff8280; }
+.act.is-active { color: var(--ok); }
+.act.is-implied { color: var(--ok); opacity: 0.5; }
+.act.is-offline { opacity: 0.45; }
+.act.is-ok { background: #00a35c; color: #fff; opacity: 1; }
+.act.is-error { background: var(--error); color: #fff; opacity: 1; }

@@ -27,6 +27,8 @@ export function createIrcSource(opts: {
   channel: string;
   emit: (event: OverlayEvent) => void;
   onStatus: (state: StatusState) => void;
+  /** Channel's user ID from ROOMSTATE, after every join. */
+  onRoomId?: (roomId: string) => void;
   clientFactory?: ClientFactory;
 }): IrcSource {
   const client = (opts.clientFactory ?? defaultFactory)(opts.channel);
@@ -69,6 +71,11 @@ export function createIrcSource(opts: {
   client.on('timeout', (...args) => emitClear((args[1] as string).toLowerCase()));
   client.on('ban', (...args) => emitClear((args[1] as string).toLowerCase()));
   client.on('clearchat', () => emitClear(null));
+
+  client.on('roomstate', (...args) => {
+    const roomId = (args[1] as IrcTags | undefined)?.['room-id'];
+    if (typeof roomId === 'string' && roomId !== '') opts.onRoomId?.(roomId);
+  });
 
   client.on('connected', () => opts.onStatus('ok'));
   client.on('disconnected', () => opts.onStatus('down'));

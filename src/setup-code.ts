@@ -32,3 +32,41 @@ export function encodeSetupCode(input: SetupCodeInput): string {
   });
   return btoa(String.fromCharCode(...new TextEncoder().encode(json)));
 }
+
+export interface SetupCode {
+  twitchChannel: string;
+  ablyChannel: string;
+  ablyKey: string;
+  /** Empty for older codes; the overlay then shows "a mod". */
+  name: string;
+}
+
+/** Same checks as `decodeSetupCode` in the userscript. Throws with a readable message. */
+export function decodeSetupCode(code: string): SetupCode {
+  let b64 = code.trim().replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/');
+  while (b64.length % 4) b64 += '=';
+
+  let cfg: Record<string, unknown> | null;
+  try {
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    cfg = JSON.parse(new TextDecoder().decode(bytes)) as Record<string, unknown> | null;
+  } catch {
+    throw new Error('Not a valid setup code (Base64/JSON).');
+  }
+  if (cfg?.['v'] !== 1) throw new Error('Unknown setup code version.');
+
+  const field = (key: string): string => {
+    const value = cfg[key];
+    if (typeof value !== 'string' || !value) throw new Error(`Field "${key}" is missing.`);
+    return value;
+  };
+  const ablyChannel = field('ablyChannel');
+  const ablyKey = field('ablyKey');
+  const twitchChannel = field('twitchChannel').trim().toLowerCase();
+  if (!ABLY_KEY.test(ablyKey)) throw new Error('Ably key is not in the format app.keyid:secret.');
+  if (!TWITCH_LOGIN.test(twitchChannel)) throw new Error('Twitch channel is invalid.');
+
+  const name = typeof cfg['name'] === 'string' ? cfg['name'].trim().slice(0, 50) : '';
+  if (name.toLowerCase() === 'overlay') throw new Error('Mod name "overlay" is reserved.');
+  return { twitchChannel, ablyChannel, ablyKey, name };
+}

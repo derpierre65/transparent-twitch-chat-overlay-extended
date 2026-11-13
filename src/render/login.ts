@@ -19,6 +19,10 @@ export function createLoginView(
   deps: {
     clipboard?: Pick<Clipboard, 'writeText'> | null;
     execCopy?: () => boolean;
+    cancel?: { label: string; onClick: () => void };
+    /** Label of a button that opens the link in a new tab; off by default. */
+    openLabel?: string;
+    openWindow?: (url: string) => void;
   } = {},
 ): LoginView {
   const clipboard = deps.clipboard === undefined ? (navigator.clipboard ?? null) : deps.clipboard;
@@ -63,6 +67,18 @@ export function createLoginView(
   row.className = 'login__row';
   row.append(url, copy);
 
+  let open: HTMLButtonElement | null = null;
+  if (deps.openLabel) {
+    const openWindow = deps.openWindow ?? ((link: string) => void window.open(link, '_blank', 'noopener,noreferrer'));
+    open = document.createElement('button');
+    open.className = 'login__button login__button--open';
+    open.type = 'button';
+    open.disabled = true;
+    open.append(document.createTextNode(deps.openLabel));
+    open.addEventListener('click', () => openWindow(url.value));
+    row.append(open);
+  }
+
   box.append(
     text('h1', 'login__title', t.title),
     text('p', 'login__text', t.intro),
@@ -71,6 +87,15 @@ export function createLoginView(
     feedback,
     status,
   );
+  if (deps.cancel) {
+    const { label, onClick } = deps.cancel;
+    const cancel = document.createElement('button');
+    cancel.className = 'login__button login__button--secondary';
+    cancel.type = 'button';
+    cancel.append(document.createTextNode(label));
+    cancel.addEventListener('click', () => onClick());
+    box.append(cancel);
+  }
   parent.append(box);
 
   return {
@@ -79,6 +104,7 @@ export function createLoginView(
       userCode.replaceChildren(document.createTextNode(code.userCode));
       url.value = code.verificationUri;
       copy.disabled = false;
+      if (open) open.disabled = false;
       feedback.replaceChildren();
     },
     setStatus(message) {

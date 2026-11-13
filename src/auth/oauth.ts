@@ -10,6 +10,22 @@ export const SCOPES = [
 
 export const TOKEN_KEY = 'overlay.token';
 const REFRESH_KEY = 'overlay.refresh';
+
+/** Separate storage and scopes, so the mod page's login never replaces the overlay's. */
+export interface AuthProfile {
+  scopes: string[];
+  tokenKey: string;
+  refreshKey: string;
+  /** Prefix of the Web Lock names. */
+  lockPrefix: string;
+}
+
+export const OVERLAY_PROFILE: AuthProfile = {
+  scopes: SCOPES,
+  tokenKey: TOKEN_KEY,
+  refreshKey: REFRESH_KEY,
+  lockPrefix: 'overlay',
+};
 const IDENTITY_KEY = 'overlay.identity';
 // Leftovers of the old implicit grant and setup flow.
 const LEGACY_KEYS = ['overlay.state', 'overlay.setup'];
@@ -35,22 +51,22 @@ export interface TokenPair {
  */
 export type Check<T> = { status: 'ok'; value: T } | { status: 'rejected' } | { status: 'unreachable' };
 
-export function readToken(storage: Storage): string | null {
-  return storage.getItem(TOKEN_KEY);
+export function readToken(storage: Storage, profile = OVERLAY_PROFILE): string | null {
+  return storage.getItem(profile.tokenKey);
 }
 
-export function readRefreshToken(storage: Storage): string | null {
-  return storage.getItem(REFRESH_KEY);
+export function readRefreshToken(storage: Storage, profile = OVERLAY_PROFILE): string | null {
+  return storage.getItem(profile.refreshKey);
 }
 
-export function writeTokens(storage: Storage, pair: TokenPair): void {
-  storage.setItem(TOKEN_KEY, pair.accessToken);
-  storage.setItem(REFRESH_KEY, pair.refreshToken);
+export function writeTokens(storage: Storage, pair: TokenPair, profile = OVERLAY_PROFILE): void {
+  storage.setItem(profile.tokenKey, pair.accessToken);
+  storage.setItem(profile.refreshKey, pair.refreshToken);
 }
 
-export function clearTokens(storage: Storage): void {
-  storage.removeItem(TOKEN_KEY);
-  storage.removeItem(REFRESH_KEY);
+export function clearTokens(storage: Storage, profile = OVERLAY_PROFILE): void {
+  storage.removeItem(profile.tokenKey);
+  storage.removeItem(profile.refreshKey);
 }
 
 export function clearLegacyKeys(storage: Storage): void {

@@ -14,6 +14,8 @@ Mods (Twitch chat + userscript) <--Ably Realtime--> Ably channel <--Realtime--> 
   are not supported).
 - `worker/` – Cloudflare Worker that stores the trusted users per channel.
 - `/token.html` of the overlay – creates the setup codes for the mods.
+- `/mod.html` of the overlay – mod page with the same buttons, no Tampermonkey needed (see
+  [Mod page](#mod-page)).
 
 Approvals of single messages are not stored anywhere. Clicks made while the overlay is
 closed are lost.
@@ -116,6 +118,8 @@ After a click the button flashes green or red; hover it for the message. Afterwa
 - Both buttons are dimmed while the overlay is offline or Ably is not connected; the tooltip
   says why. Clicks made while the overlay is offline have no effect.
 
+Instead of steps 2 and 3, a mod can use the [mod page](#mod-page).
+
 The userscript keeps one Ably connection per tab with a chat of a configured channel. Use
 Ably's **Dev Console** (attach to the channel) to watch the messages.
 
@@ -125,6 +129,36 @@ Firefox: it loads the Ably library (pinned version, integrity-checked) into the 
 and talks to it through `window.postMessage` with plain strings, ignoring messages from other
 windows. The mod key is therefore in the page's memory, as it would be with any Ably client on
 that page.
+
+## Mod page
+
+`/mod.html` of the overlay (e.g. `https://extended-twitch-overlay.pages.dev/mod.html`) shows
+the channel's chat with the same **Trust user** and **Approve message** buttons, without
+Tampermonkey or a userscript to keep up to date.
+
+1. Paste the setup code from `/token.html` at the top and click **Add**. Codes are kept in this
+   browser's `localStorage`; several can be saved and switched with the dropdown. **Remove**
+   deletes the selected one from this browser.
+2. Optional: **Log in with Twitch** with the account you moderate with. Each message then also
+   gets **Delete message**, **Timeout 10 minutes** and **Ban user** (ban asks first). The page
+   asks only for `moderator:manage:chat_messages` and `moderator:manage:banned_users`, and keeps
+   this login apart from the overlay's. Twitch decides whether the account may moderate the
+   channel; its error shows on the button and at the top.
+
+Behavior:
+
+- Messages of mods and the broadcaster have no approval buttons, as the overlay never holds
+  them. The broadcaster's messages have no moderation buttons.
+- The left edge shows what the overlay does: yellow = held, green = shown (mod, trusted or
+  approved). Deleted messages are struck through, those of banned or timed-out users dimmed.
+- **Trust user** toggles: a click on a trusted user untrusts them.
+- The dots at the top show the chat, Ably and whether the overlay is open. Hover a button for
+  details, as in the userscript.
+- Badges need the Twitch login; without it messages show without badges. 7TV, BTTV and FFZ
+  emotes always work.
+- Messages from other channels in a shared chat session show up too, as in the overlay.
+- The mod key and Twitch tokens are in this browser's `localStorage`. Use the page only in your
+  own browser profile.
 
 ## Troubleshooting
 

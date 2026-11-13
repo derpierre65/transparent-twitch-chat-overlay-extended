@@ -1,11 +1,13 @@
 import { withLock } from './locks';
 import {
+  OVERLAY_PROFILE,
   classifyFailure,
   clearTokens,
   parseTokenPair,
   readRefreshToken,
   readToken,
   writeTokens,
+  type AuthProfile,
   type Check,
   type TokenPair,
 } from './oauth';
@@ -42,32 +44,34 @@ export interface TokenRefresher {
 export function createTokenRefresher(opts: {
   clientId: string;
   storage: Storage;
+  profile?: AuthProfile;
   fetchFn?: typeof fetch;
   locks?: LockManager;
 }): TokenRefresher {
+  const profile = opts.profile ?? OVERLAY_PROFILE;
   let inflight: Promise<Check<string>> | null = null;
 
   async function run(stale: string | null): Promise<Check<string>> {
     // Another window already refreshed: adopt its token instead of redeeming the
     // now consumed refresh token again.
-    const stored = readToken(opts.storage);
+    const stored = readToken(opts.storage, profile);
     if (stored && stored !== stale) return { status: 'ok', value: stored };
 
-    const refreshToken = readRefreshToken(opts.storage);
+    const refreshToken = readRefreshToken(opts.storage, profile);
     if (!refreshToken) return { status: 'rejected' };
 
     const result = await requestRefresh(opts.clientId, refreshToken, opts.fetchFn);
     if (result.status === 'ok') {
-      writeTokens(opts.storage, result.value);
+      writeTokens(opts.storage, result.value, profile);
       return { status: 'ok', value: result.value.accessToken };
     }
-    if (result.status === 'rejected') clearTokens(opts.storage);
+    if (result.status === 'rejected') clearTokens(opts.storage, profile);
     return result;
   }
 
   return {
     refresh(stale) {
-      inflight ??= withLock('overlay.refresh', () => run(stale), undefined, opts.locks).finally(() => {
+      inflight ??= withLock(`${profile.lockPrefix}.refresh`, () => run(stale), undefined, opts.locks).finally(() => {
         inflight = null;
       });
       return inflight;

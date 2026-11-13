@@ -118,4 +118,21 @@ describe('createIrcSource', () => {
 
     expect(status).toEqual(['ok', 'down']);
   });
+
+  it('reports the room id from ROOMSTATE', async () => {
+    const roomIds: string[] = [];
+    const fake = fakeClient();
+    createIrcSource({
+      channel: 'derpierre65',
+      emit: () => undefined,
+      onStatus: () => undefined,
+      onRoomId: (id) => roomIds.push(id),
+      clientFactory: () => fake.client,
+    });
+
+    fake.fire('roomstate', '#derpierre65', { 'room-id': '123' });
+    fake.fire('roomstate', '#derpierre65', {});
+
+    expect(roomIds).toEqual(['123']);
+  });
 });

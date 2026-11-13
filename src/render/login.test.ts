@@ -66,4 +66,21 @@ describe('createLoginView', () => {
     view.close();
     expect(parent.querySelector('.login')).toBeNull();
   });
+
+  it('has no open button unless asked for', () => {
+    createLoginView(parent, MESSAGES.en.login, { clipboard: null });
+    expect(parent.querySelector('.login__button--open')).toBeNull();
+  });
+
+  it('opens the link in a new tab once a code arrives', () => {
+    const openWindow = vi.fn();
+    const view = createLoginView(parent, MESSAGES.en.login, { clipboard: null, openLabel: 'Open', openWindow });
+    const open = parent.querySelector<HTMLButtonElement>('.login__button--open')!;
+    expect(open.disabled).toBe(true);
+
+    view.showCode(CODE);
+    open.click();
+
+    expect(openWindow).toHaveBeenCalledWith(CODE.verificationUri);
+  });
 });
