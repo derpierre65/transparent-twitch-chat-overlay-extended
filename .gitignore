@@ -5,3 +5,4 @@ dist/
 .claude/
 .wrangler/
 chat-approval/worker/wrangler.toml
+.idea/
