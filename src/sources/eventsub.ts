@@ -28,19 +28,19 @@ export const TOPICS: Topic[] = [
   },
   {
     type: 'channel.hype_train.begin',
-    version: '1',
+    version: '2',
     scope: 'channel:read:hype_train',
     condition: (id) => ({ broadcaster_user_id: id }),
   },
   {
     type: 'channel.hype_train.progress',
-    version: '1',
+    version: '2',
     scope: 'channel:read:hype_train',
     condition: (id) => ({ broadcaster_user_id: id }),
   },
   {
     type: 'channel.hype_train.end',
-    version: '1',
+    version: '2',
     scope: 'channel:read:hype_train',
     condition: (id) => ({ broadcaster_user_id: id }),
   },
