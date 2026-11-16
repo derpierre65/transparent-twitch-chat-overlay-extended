@@ -45,7 +45,8 @@ function parseUsers(data: unknown): Map<string, TrustedUser> | null {
 
 /**
  * Trusted users of one channel. With an endpoint, the list is loaded once and its changes are
- * saved at most once per interval; without one it lives in memory only.
+ * saved once no further change came for a short delay, failed saves again every interval; without one it lives in
+ * memory only.
  */
 export function createTrustStore(opts: {
   endpoint: { url: string; secret: string } | null;
@@ -53,16 +54,23 @@ export function createTrustStore(opts: {
   /** Called after the stored list has loaded, so held messages of those users can go out. */
   onLoaded?: () => void;
   intervalMs?: number;
+  saveDelayMs?: number;
   fetchFn?: typeof fetch;
   setIntervalFn?: typeof setInterval;
+  setTimeoutFn?: typeof setTimeout;
+  clearTimeoutFn?: typeof clearTimeout;
   now?: () => number;
   log?: (message: string) => void;
 }): TrustStore {
   const fetchFn = opts.fetchFn ?? ((...args: Parameters<typeof fetch>) => fetch(...args));
   const every = opts.setIntervalFn ?? setInterval;
+  const later = opts.setTimeoutFn ?? setTimeout;
+  const cancel = opts.clearTimeoutFn ?? clearTimeout;
   const now = opts.now ?? Date.now;
   const log = opts.log ?? hostLog;
   const intervalMs = opts.intervalMs ?? 5 * 60_000;
+  // Restarted by every change, so a burst of trusts ends up in one save.
+  const saveDelayMs = opts.saveDelayMs ?? 10_000;
   const endpoint = opts.endpoint;
   const url = endpoint ? `${endpoint.url}/trusted/${encodeURIComponent(opts.channel.toLowerCase())}` : '';
   const headers: Record<string, string> = endpoint ? { Authorization: `Bearer ${endpoint.secret}` } : {};
@@ -74,6 +82,17 @@ export function createTrustStore(opts: {
   // delta, so an overlay with an outdated list cannot bring back users another one removed.
   const unsaved = new Map<string, TrustedUser | null>();
   let saving = false;
+  let started = false;
+  let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function scheduleSave(): void {
+    if (!started || unsaved.size === 0) return;
+    if (saveTimer !== null) cancel(saveTimer);
+    saveTimer = later(() => {
+      saveTimer = null;
+      void store.flush();
+    }, saveDelayMs);
+  }
 
   function apply(userId: string, user: TrustedUser | null): void {
     if (user) users.set(userId, user);
@@ -82,7 +101,10 @@ export function createTrustStore(opts: {
 
   function change(userId: string, user: TrustedUser | null): void {
     apply(userId, user);
-    if (endpoint) unsaved.set(userId, user);
+    if (endpoint) {
+      unsaved.set(userId, user);
+      scheduleSave();
+    }
   }
 
   async function fetchList(): Promise<boolean> {
@@ -102,6 +124,7 @@ export function createTrustStore(opts: {
       for (const [userId, user] of unsaved) apply(userId, user);
       loaded = true;
       opts.onLoaded?.();
+      scheduleSave();
       return true;
     } catch (error) {
       log(`trusted users: load failed: ${String(error)}`);
@@ -161,6 +184,7 @@ export function createTrustStore(opts: {
         for (const [userId, user] of sent) {
           if (unsaved.get(userId) === user) unsaved.delete(userId);
         }
+        scheduleSave();
       } catch (error) {
         log(`trusted users: save failed: ${String(error)}`);
       } finally {
@@ -178,6 +202,8 @@ export function createTrustStore(opts: {
 
     start() {
       if (!endpoint) return;
+      started = true;
+      scheduleSave();
       every(() => {
         if (loaded) void store.flush();
         else void store.load();

@@ -181,8 +181,9 @@ Behavior:
   Messages a mod deletes or that belong to a banned/timed-out user are dropped.
 - The overlay keeps the single-message approvals of the last 30 minutes (at most 500) in
   memory, so mods who connect later see them too.
-- The overlay loads the trusted list at startup and saves its changes at most every 5 minutes,
-  plus one best-effort attempt when the page closes. It sends only the users that changed, so
+- The overlay loads the trusted list at startup and saves its changes 10 seconds after
+  the last one (each change restarts the wait), retries a failed save every 5 minutes and makes one best-effort attempt
+  when the page closes. It sends only the users that changed, so
   an overlay with an outdated list cannot bring back users another one removed. It never saves
   before the list has loaded.
 

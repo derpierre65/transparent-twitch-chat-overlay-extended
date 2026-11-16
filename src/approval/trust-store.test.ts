@@ -94,7 +94,7 @@ describe('createTrustStore', () => {
     expect(s.entries()).toEqual([['4', { login: 'd', trustedAt: STORED_AT }]]);
   });
 
-  it('saves changes at most once per interval and only when changed', async () => {
+  it('saves changes once none followed for 10 seconds, and only when changed', async () => {
     const s = store();
     await s.load();
     s.start();
@@ -103,8 +103,9 @@ describe('createTrustStore', () => {
     expect(saves()).toEqual([]);
 
     s.add('1', 'a');
+    await vi.advanceTimersByTimeAsync(5_000);
     s.add('2', 'b');
-    await vi.advanceTimersByTimeAsync(5 * 60_000 - 1);
+    await vi.advanceTimersByTimeAsync(9_999);
     expect(saves()).toEqual([]);
     await vi.advanceTimersByTimeAsync(1);
     expect(patches()).toEqual([
@@ -116,6 +117,27 @@ describe('createTrustStore', () => {
 
     await vi.advanceTimersByTimeAsync(5 * 60_000);
     expect(saves()).toHaveLength(1);
+  });
+
+  it('saves a change made during a running save right after it', async () => {
+    const s = store();
+    await s.load();
+    s.start();
+    let finish: (r: Response) => void = () => {};
+    fetchFn.mockImplementationOnce(() => new Promise<Response>((resolve) => (finish = resolve)));
+
+    s.add('1', 'a');
+    await vi.advanceTimersByTimeAsync(10_000);
+    s.add('2', 'b');
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(saves()).toHaveLength(1);
+    finish(new Response(null, { status: 204 }));
+    await vi.advanceTimersByTimeAsync(10_000);
+
+    expect(patches()).toEqual([
+      { set: { '1': { login: 'a', trustedAt: NOW } }, remove: [] },
+      { set: { '2': { login: 'b', trustedAt: NOW } }, remove: [] },
+    ]);
   });
 
   it('saves only what changed, so a user removed elsewhere is not written back', async () => {
@@ -147,10 +169,10 @@ describe('createTrustStore', () => {
     const s = store();
     await s.load();
     s.start();
-    s.add('1', 'a');
     fetchFn.mockResolvedValueOnce(new Response(null, { status: 500 }));
+    s.add('1', 'a');
 
-    await vi.advanceTimersByTimeAsync(5 * 60_000);
+    await vi.advanceTimersByTimeAsync(10_000);
     expect(logs.some((m) => m.includes('HTTP 500'))).toBe(true);
 
     fetchFn.mockRejectedValueOnce(new Error('offline'));
@@ -231,7 +253,7 @@ describe('createTrustStore', () => {
     expect(s.has('2')).toBe(true);
     expect(s.has('9')).toBe(true);
 
-    await vi.advanceTimersByTimeAsync(5 * 60_000);
+    await vi.advanceTimersByTimeAsync(10_000);
     expect(patches()).toEqual([{ set: { '9': { login: 'new', trustedAt: NOW } }, remove: ['1'] }]);
   });
 
