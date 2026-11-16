@@ -50,6 +50,16 @@ describe('createApprovalGate', () => {
     expect(emitted).toEqual(['m1', 'm2']);
   });
 
+  it('passes lead moderators and mods without a mod badge through', () => {
+    const g = gate();
+    g.handle(chat('m1', '1', 'lead', ['lead_moderator']));
+    const event = chat('m2', '2', 'vipmod', ['vip']);
+    if (event.type === 'chat') event.author.mod = true;
+    g.handle(event);
+
+    expect(emitted).toEqual(['m1', 'm2']);
+  });
+
   it('reports only held messages', () => {
     const held: string[] = [];
     trusted.set('2', 'friend');

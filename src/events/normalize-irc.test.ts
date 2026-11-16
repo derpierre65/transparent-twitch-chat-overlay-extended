@@ -39,6 +39,12 @@ describe('parseTwitchEmotes — pre-parsed by tmi.js', () => {
 });
 
 describe('parseAuthor', () => {
+  it('reads the mod tag as tmi.js or raw value', () => {
+    expect(parseAuthor({ username: 'u', mod: true }).mod).toBe(true);
+    expect(parseAuthor({ username: 'u', mod: '1' }).mod).toBe(true);
+    expect(parseAuthor({ username: 'u', mod: false }).mod).toBeUndefined();
+  });
+
   it('reads name, color and badges', () => {
     const author = parseAuthor({
       'display-name': 'derPierre65',

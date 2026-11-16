@@ -1,9 +1,9 @@
 import type { Author, OverlayEvent } from './types';
 
-const EXEMPT_BADGES = new Set(['broadcaster', 'moderator']);
+const EXEMPT_BADGES = new Set(['broadcaster', 'moderator', 'lead_moderator']);
 
 export function isModerator(author: Author): boolean {
-  return author.badges.some((badge) => EXEMPT_BADGES.has(badge.setId));
+  return author.mod === true || author.badges.some((badge) => EXEMPT_BADGES.has(badge.setId));
 }
 
 export interface ChatDelay {

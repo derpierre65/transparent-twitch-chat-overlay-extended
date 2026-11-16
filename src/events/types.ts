@@ -10,6 +10,8 @@ export interface Author {
   displayName: string;
   color: string | null;
   badges: Badge[];
+  /** IRC `mod` tag: set for every mod, also when the badge shown is not `moderator`. */
+  mod?: boolean;
 }
 
 /** Indices refer to the raw text, not to already replaced text. */

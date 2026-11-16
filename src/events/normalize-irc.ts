@@ -93,6 +93,8 @@ export function parseAuthor(tags: IrcTags): Author {
     displayName: str(tags['display-name']) || login,
     color: str(tags['color']) || null,
     badges: parseBadges(tags['badges-raw'] ?? tags['badges']),
+    // tmi.js turns the tag into a boolean.
+    ...(tags['mod'] === true || tags['mod'] === '1' ? { mod: true } : {}),
   };
 }
 
