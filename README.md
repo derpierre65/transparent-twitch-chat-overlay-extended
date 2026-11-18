@@ -58,6 +58,7 @@ from a form, including the chat approval parameters.
 | `maxLines` | `1`–`500` | `50` | Maximum number of visible lines. When another one arrives, the oldest is removed, even before `fade` has passed. |
 | `fontSize` | pixels, `8`–`120`, decimals allowed | `20` | Font size of the chat lines. Emotes and badges scale with it. Values outside the range are clamped. |
 | `dark` | `1` | off | Dark mode: opaque dark background (`#18181b`), light text without shadow. For use without a game/scene behind the chat. |
+| `wakeLock` | `1` | off | Keeps the screen of a phone or tablet on while the page is visible (Screen Wake Lock API, needs HTTPS). The browser may refuse, e.g. in battery saver mode; then the screen turns off as usual. |
 | `demo` | `1` | off | Plays synthetic chat lines and events without login or Twitch connection. Handy for styling. |
 | `ablyKey` | Ably API key | off | Turns on [message approval](#message-approval) together with `ablyChannel`. |
 | `ablyChannel` | Ably channel name | off | Channel the mods' userscript publishes to. |

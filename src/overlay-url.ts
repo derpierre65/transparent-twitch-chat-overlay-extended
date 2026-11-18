@@ -13,6 +13,7 @@ export interface OverlayUrlInput {
   /** Empty = default. */
   fontSize: string;
   dark: boolean;
+  wakeLock: boolean;
   demo: boolean;
   ablyKey: string;
   ablyChannel: string;
@@ -68,6 +69,7 @@ export function buildOverlayUrl(input: OverlayUrlInput): OverlayUrlResult {
   }
 
   if (input.dark) set('dark', '1');
+  if (input.wakeLock) set('wakeLock', '1');
   if (input.demo) set('demo', '1');
 
   const ablyKey = input.ablyKey.trim();

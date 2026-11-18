@@ -22,6 +22,7 @@ function update(): void {
     maxLines: value('maxLines'),
     fontSize: value('fontSize'),
     dark: field<HTMLInputElement>('dark').checked,
+    wakeLock: field<HTMLInputElement>('wakeLock').checked,
     demo: field<HTMLInputElement>('demo').checked,
     ablyKey: value('ablyKey'),
     ablyChannel: value('ablyChannel'),

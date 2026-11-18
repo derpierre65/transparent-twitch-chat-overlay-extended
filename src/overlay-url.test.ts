@@ -8,6 +8,7 @@ const empty: OverlayUrlInput = {
   maxLines: '',
   fontSize: '',
   dark: false,
+  wakeLock: false,
   demo: false,
   ablyKey: '',
   ablyChannel: '',
@@ -40,6 +41,7 @@ describe('buildOverlayUrl', () => {
         maxLines: '20',
         fontSize: '24',
         dark: true,
+        wakeLock: true,
         demo: true,
         ablyKey: 'app.key:se&cret=',
         ablyChannel: 'overlay-approval',
@@ -54,6 +56,7 @@ describe('buildOverlayUrl', () => {
       maxLines: 20,
       fontSize: 24,
       dark: true,
+      wakeLock: true,
       demo: true,
       approval: {
         ablyKey: 'app.key:se&cret=',

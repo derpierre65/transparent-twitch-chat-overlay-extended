@@ -9,6 +9,7 @@ describe('parseConfig', () => {
       demo: false,
       language: 'en',
       dark: false,
+      wakeLock: false,
       fontSize: null,
       approval: null,
     });
@@ -23,6 +24,11 @@ describe('parseConfig', () => {
   it('reads dark mode', () => {
     expect(parseConfig('?dark=1').dark).toBe(true);
     expect(parseConfig('?dark=0').dark).toBe(false);
+  });
+
+  it('reads the wake lock flag', () => {
+    expect(parseConfig('?wakeLock=1').wakeLock).toBe(true);
+    expect(parseConfig('?wakeLock=0').wakeLock).toBe(false);
   });
 
   it('reads the font size and clamps it', () => {

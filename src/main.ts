@@ -20,6 +20,7 @@ import { createChatDelay } from './events/chat-delay';
 import type { OverlayEvent } from './events/types';
 import { hostLog } from './host/log';
 import { createSoundPlayer } from './host/sound';
+import { keepScreenAwake } from './host/wake-lock';
 import { createChatLog } from './render/chat-log';
 import { createLoginView } from './render/login';
 import { createStatusPill, type StatusPill } from './render/status';
@@ -41,6 +42,7 @@ async function main(): Promise<void> {
   const t = MESSAGES[config.language];
   document.documentElement.lang = config.language;
   document.documentElement.classList.toggle('theme-dark', config.dark);
+  if (config.wakeLock) keepScreenAwake();
   if (config.fontSize !== null) document.documentElement.style.setProperty('--font-size', `${config.fontSize}px`);
   const storage = window.localStorage;
   const root = document.getElementById('log');

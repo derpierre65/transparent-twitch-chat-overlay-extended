@@ -15,6 +15,7 @@ export interface OverlayConfig {
   demo: boolean;
   language: Language;
   dark: boolean;
+  wakeLock: boolean;
   /** Pixels; `null` keeps the stylesheet default. */
   fontSize: number | null;
   /** `null` unless `ablyKey` and `ablyChannel` are both set. */
@@ -80,6 +81,7 @@ export function parseConfig(search: string): OverlayConfig {
     demo,
     language: parseLanguage(params.get('language')),
     dark: params.get('dark') === '1',
+    wakeLock: params.get('wakeLock') === '1',
     fontSize: fontSize(params.get('fontSize')),
     approval: parseApproval(params),
   };
