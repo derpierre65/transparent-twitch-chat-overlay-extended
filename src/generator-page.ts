@@ -20,6 +20,8 @@ function update(): void {
     language: parseLanguage(value('language')),
     fade: value('fade'),
     maxLines: value('maxLines'),
+    fontSize: value('fontSize'),
+    dark: field<HTMLInputElement>('dark').checked,
     demo: field<HTMLInputElement>('demo').checked,
     ablyKey: value('ablyKey'),
     ablyChannel: value('ablyChannel'),

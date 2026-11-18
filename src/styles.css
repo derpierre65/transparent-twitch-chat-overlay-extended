@@ -42,6 +42,15 @@ body {
   overflow: hidden;
 }
 
+:root.theme-dark {
+  --text: #efeff1;
+  --shadow: none;
+  --line-gap: 2px;
+}
+:root.theme-dark,
+:root.theme-dark body { background: #18181b; }
+:root.theme-dark .log { padding: 8px 10px; }
+
 .line {
   overflow-wrap: anywhere;
   transition: opacity 0.4s linear;

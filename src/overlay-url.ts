@@ -1,3 +1,4 @@
+import { FONT_SIZE_MAX, FONT_SIZE_MIN } from './config';
 import type { Language } from './i18n';
 
 export const DEFAULT_OVERLAY_URL = 'https://extended-twitch-overlay.pages.dev/';
@@ -9,6 +10,9 @@ export interface OverlayUrlInput {
   fade: string;
   /** Empty = default. */
   maxLines: string;
+  /** Empty = default. */
+  fontSize: string;
+  dark: boolean;
   demo: boolean;
   ablyKey: string;
   ablyChannel: string;
@@ -54,6 +58,16 @@ export function buildOverlayUrl(input: OverlayUrlInput): OverlayUrlResult {
     set('maxLines', String(value));
   }
 
+  const fontSize = input.fontSize.trim();
+  if (fontSize) {
+    const value = Number(fontSize);
+    if (!Number.isFinite(value) || value < FONT_SIZE_MIN || value > FONT_SIZE_MAX) {
+      return { error: `Font size must be between ${FONT_SIZE_MIN} and ${FONT_SIZE_MAX} pixels.` };
+    }
+    set('fontSize', String(value));
+  }
+
+  if (input.dark) set('dark', '1');
   if (input.demo) set('demo', '1');
 
   const ablyKey = input.ablyKey.trim();

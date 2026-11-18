@@ -40,6 +40,8 @@ async function main(): Promise<void> {
   const config = parseConfig(window.location.search);
   const t = MESSAGES[config.language];
   document.documentElement.lang = config.language;
+  document.documentElement.classList.toggle('theme-dark', config.dark);
+  if (config.fontSize !== null) document.documentElement.style.setProperty('--font-size', `${config.fontSize}px`);
   const storage = window.localStorage;
   const root = document.getElementById('log');
   const statusEl = document.getElementById('status');

@@ -56,6 +56,8 @@ from a form, including the chat approval parameters.
 | `language` | `en`, `de` | `en` | Language of all overlay texts (event lines, login view, connection notice). Case-insensitive; unknown values fall back to English. |
 | `fade` | seconds, `0`–`3600`, decimals allowed | `60`, `5` in demo mode | Time after which a line fades out. `0` disables fading. |
 | `maxLines` | `1`–`500` | `50` | Maximum number of visible lines. When another one arrives, the oldest is removed, even before `fade` has passed. |
+| `fontSize` | pixels, `8`–`120`, decimals allowed | `20` | Font size of the chat lines. Emotes and badges scale with it. Values outside the range are clamped. |
+| `dark` | `1` | off | Dark mode: opaque dark background (`#18181b`), light text without shadow. For use without a game/scene behind the chat. |
 | `demo` | `1` | off | Plays synthetic chat lines and events without login or Twitch connection. Handy for styling. |
 | `ablyKey` | Ably API key | off | Turns on [message approval](#message-approval) together with `ablyChannel`. |
 | `ablyChannel` | Ably channel name | off | Channel the mods' userscript publishes to. |

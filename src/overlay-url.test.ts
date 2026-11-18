@@ -6,6 +6,8 @@ const empty: OverlayUrlInput = {
   language: 'en',
   fade: '',
   maxLines: '',
+  fontSize: '',
+  dark: false,
   demo: false,
   ablyKey: '',
   ablyChannel: '',
@@ -36,6 +38,8 @@ describe('buildOverlayUrl', () => {
         language: 'de',
         fade: '30',
         maxLines: '20',
+        fontSize: '24',
+        dark: true,
         demo: true,
         ablyKey: 'app.key:se&cret=',
         ablyChannel: 'overlay-approval',
@@ -48,6 +52,8 @@ describe('buildOverlayUrl', () => {
       language: 'de',
       fade: 30,
       maxLines: 20,
+      fontSize: 24,
+      dark: true,
       demo: true,
       approval: {
         ablyKey: 'app.key:se&cret=',
@@ -68,6 +74,8 @@ describe('buildOverlayUrl', () => {
     expect(error({ fade: 'abc' })).toBeDefined();
     expect(error({ maxLines: '0' })).toBeDefined();
     expect(error({ maxLines: '2.5' })).toBeDefined();
+    expect(error({ fontSize: '4' })).toBeDefined();
+    expect(error({ fontSize: '200' })).toBeDefined();
     expect(error({ ablyKey: 'app.key:secret' })).toBeDefined();
     expect(error({ ablyKey: 'a.b:c', ablyChannel: 'x', trustUrl: 'https://w.dev' })).toBeDefined();
     expect(error({ trustUrl: 'https://w.dev', trustSecret: 's' })).toBeDefined();

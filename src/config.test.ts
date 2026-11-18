@@ -3,13 +3,34 @@ import { parseConfig } from './config';
 
 describe('parseConfig', () => {
   it('uses defaults for an empty query string', () => {
-    expect(parseConfig('')).toEqual({ maxLines: 50, fade: 60, demo: false, language: 'en', approval: null });
+    expect(parseConfig('')).toEqual({
+      maxLines: 50,
+      fade: 60,
+      demo: false,
+      language: 'en',
+      dark: false,
+      fontSize: null,
+      approval: null,
+    });
   });
 
   it('reads the language', () => {
     expect(parseConfig('?language=de').language).toBe('de');
     expect(parseConfig('?language=EN').language).toBe('en');
     expect(parseConfig('?language=xx').language).toBe('en');
+  });
+
+  it('reads dark mode', () => {
+    expect(parseConfig('?dark=1').dark).toBe(true);
+    expect(parseConfig('?dark=0').dark).toBe(false);
+  });
+
+  it('reads the font size and clamps it', () => {
+    expect(parseConfig('?fontSize=28').fontSize).toBe(28);
+    expect(parseConfig('?fontSize=2').fontSize).toBe(8);
+    expect(parseConfig('?fontSize=999').fontSize).toBe(120);
+    expect(parseConfig('?fontSize=abc').fontSize).toBeNull();
+    expect(parseConfig('?fontSize=0').fontSize).toBeNull();
   });
 
   it('reads maxLines and fade as numbers', () => {

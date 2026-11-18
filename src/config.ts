@@ -14,11 +14,23 @@ export interface OverlayConfig {
   fade: number;
   demo: boolean;
   language: Language;
+  dark: boolean;
+  /** Pixels; `null` keeps the stylesheet default. */
+  fontSize: number | null;
   /** `null` unless `ablyKey` and `ablyChannel` are both set. */
   approval: ApprovalConfig | null;
 }
 
 const MAX_LINES_CAP = 500;
+export const FONT_SIZE_MIN = 8;
+export const FONT_SIZE_MAX = 120;
+
+function fontSize(raw: string | null): number | null {
+  if (raw === null) return null;
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value <= 0) return null;
+  return Math.min(Math.max(value, FONT_SIZE_MIN), FONT_SIZE_MAX);
+}
 
 function positiveNumber(raw: string | null, fallback: number, cap: number): number {
   if (raw === null) return fallback;
@@ -67,6 +79,8 @@ export function parseConfig(search: string): OverlayConfig {
     fade: positiveNumber(params.get('fade'), demo ? 5 : 60, 3600),
     demo,
     language: parseLanguage(params.get('language')),
+    dark: params.get('dark') === '1',
+    fontSize: fontSize(params.get('fontSize')),
     approval: parseApproval(params),
   };
 }
