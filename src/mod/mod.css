@@ -77,6 +77,8 @@ input {
 .bar__add input { flex: 1; min-width: 0; }
 #setup { max-width: 100%; }
 .bar__spacer { flex: 1; }
+[hidden] { display: none !important; }
+#trust-login { width: 200px; max-width: 100%; }
 .twitch { color: var(--muted); }
 
 .state { display: flex; gap: 10px; color: var(--muted); font-size: 12px; }

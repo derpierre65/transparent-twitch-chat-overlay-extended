@@ -13,6 +13,8 @@ export interface Moderator {
   deleteMessage(broadcasterId: string, messageId: string): Promise<void>;
   timeout(broadcasterId: string, userId: string, seconds?: number): Promise<void>;
   ban(broadcasterId: string, userId: string): Promise<void>;
+  /** `null` if no such Twitch account exists. */
+  findUser(login: string): Promise<{ id: string; login: string } | null>;
 }
 
 const HELIX = 'https://api.twitch.tv/helix';
@@ -28,8 +30,8 @@ export function createModerator(opts: {
 }): Moderator {
   const fetchFn = opts.fetchFn ?? fetch;
 
-  async function call(method: string, path: string, params: Record<string, string>, body?: object): Promise<void> {
-    const url = `${HELIX}${path}?${new URLSearchParams({ ...params, moderator_id: opts.moderatorId })}`;
+  async function call(method: string, path: string, params: Record<string, string>, body?: object): Promise<unknown> {
+    const url = `${HELIX}${path}?${new URLSearchParams(params)}`;
     const send = (token: string): Promise<Response> =>
       fetchFn(url, {
         method,
@@ -55,19 +57,28 @@ export function createModerator(opts: {
       if (error instanceof Error && error.message.startsWith('Twitch login')) throw error;
       throw new Error('Twitch not reachable.');
     }
-    if (response.ok) return;
+    if (response.ok) return response.status === 204 ? null : response.json().catch(() => null);
 
     const data = (await response.json().catch(() => null)) as { message?: unknown } | null;
     const message = typeof data?.message === 'string' && data.message ? data.message : `HTTP ${response.status}`;
     throw new Error(`Twitch: ${message}`);
   }
 
+  const moderate = async (method: string, path: string, params: Record<string, string>, body?: object): Promise<void> => {
+    await call(method, path, { ...params, moderator_id: opts.moderatorId }, body);
+  };
+
   return {
     deleteMessage: (broadcasterId, messageId) =>
-      call('DELETE', '/moderation/chat', { broadcaster_id: broadcasterId, message_id: messageId }),
+      moderate('DELETE', '/moderation/chat', { broadcaster_id: broadcasterId, message_id: messageId }),
     timeout: (broadcasterId, userId, seconds = TIMEOUT_SECONDS) =>
-      call('POST', '/moderation/bans', { broadcaster_id: broadcasterId }, { data: { user_id: userId, duration: seconds } }),
+      moderate('POST', '/moderation/bans', { broadcaster_id: broadcasterId }, { data: { user_id: userId, duration: seconds } }),
     ban: (broadcasterId, userId) =>
-      call('POST', '/moderation/bans', { broadcaster_id: broadcasterId }, { data: { user_id: userId } }),
+      moderate('POST', '/moderation/bans', { broadcaster_id: broadcasterId }, { data: { user_id: userId } }),
+    findUser: async (login) => {
+      const data = (await call('GET', '/users', { login })) as { data?: { id?: unknown; login?: unknown }[] } | null;
+      const user = data?.data?.[0];
+      return typeof user?.id === 'string' && typeof user.login === 'string' ? { id: user.id, login: user.login } : null;
+    },
   };
 }

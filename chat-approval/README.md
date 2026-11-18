@@ -152,6 +152,9 @@ Behavior:
 - The left edge shows what the overlay does: yellow = held, green = shown (mod, trusted or
   approved). Deleted messages are struck through, those of banned or timed-out users dimmed.
 - **Trust user** toggles: a click on a trusted user untrusts them.
+- The **Username** field at the top trusts a user who has no message on screen. Users who
+  chatted since the page opened work right away; anyone else needs the Twitch login, so the
+  page can look up the user ID.
 - The dots at the top show the chat, Ably and whether the overlay is open. Hover a button for
   details, as in the userscript.
 - Badges need the Twitch login; without it messages show without badges. 7TV, BTTV and FFZ

@@ -6,6 +6,7 @@ import { emptyBadgeIndex, loadBadges } from '../badges/badges';
 import { CLIENT_ID } from '../client-id';
 import { loadEmotes } from '../emotes/providers';
 import { createRegistry } from '../emotes/registry';
+import { LOGIN_RE } from '../approval/commands';
 import type { StatusState } from '../events/types';
 import { MESSAGES, parseLanguage } from '../i18n';
 import { createLoginView } from '../render/login';
@@ -46,6 +47,8 @@ async function main(): Promise<void> {
   const stateEl = el<HTMLElement>('state');
   const messageEl = el<HTMLElement>('message');
   const chat = el<HTMLElement>('chat');
+  const trustForm = el<HTMLFormElement>('trust');
+  const trustInput = el<HTMLInputElement>('trust-login');
 
   let messageTimer: number | undefined;
   const say = (content: string, error = true): void => {
@@ -336,6 +339,67 @@ async function main(): Promise<void> {
     }
   }
 
+  /* ---------- Trust by username ---------- */
+
+  trustForm.hidden = false;
+
+  // Lets the field work without a Twitch login for anyone who already chatted.
+  const seenUsers = new Map<string, string>();
+
+  async function userIdFor(login: string): Promise<string | null> {
+    const seen = seenUsers.get(login);
+    if (seen) return seen;
+    if (!moderator) throw new Error(`${login} has not chatted yet. Log in with Twitch to trust any user.`);
+    return (await moderator.findUser(login))?.id ?? null;
+  }
+
+  trustForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const login = trustInput.value.trim().replace(/^@/, '').toLowerCase();
+    if (!LOGIN_RE.test(login)) {
+      say('Enter a valid Twitch username.');
+      return;
+    }
+    if ([...view.trusted.values()].some((entry) => entry.login === login)) {
+      say(`${login} is already trusted.`, false);
+      return;
+    }
+    if (!feed || !feedStatus.connected) {
+      say(approvalNote() || 'Not connected to Ably.');
+      return;
+    }
+    const ably = feed;
+    const submit = trustForm.querySelector('button')!;
+    submit.disabled = true;
+    void (async () => {
+      try {
+        let userId: string | null;
+        try {
+          userId = await userIdFor(login);
+        } catch (error) {
+          say((error as Error).message);
+          return;
+        }
+        if (!userId) {
+          say(`Twitch user ${login} not found.`);
+          return;
+        }
+        try {
+          await ably.publish('trust-user', { userId, login });
+        } catch (error) {
+          say(describeAblyError(error));
+          return;
+        }
+        trustInput.value = '';
+        const note = approvalNote();
+        say(note ? `${login} trusted
+${note}` : `${login} trusted`, false);
+      } finally {
+        submit.disabled = false;
+      }
+    })();
+  });
+
   /* ---------- Connections ---------- */
 
   feed = connectModFeed({
@@ -356,7 +420,10 @@ async function main(): Promise<void> {
 
   const irc = createIrcSource({
     channel: setup.twitchChannel,
-    emit: (event) => log.handle(event),
+    emit: (event) => {
+      if (event.type === 'chat') seenUsers.set(event.author.login, event.author.id);
+      log.handle(event);
+    },
     onStatus: (state) => {
       ircState = state;
       renderState();

@@ -24,6 +24,10 @@
         <span class="bar__spacer"></span>
         <span id="state" class="state"></span>
       </div>
+      <form id="trust" class="bar__row" autocomplete="off" hidden>
+        <input id="trust-login" placeholder="Username" aria-label="Username to trust" spellcheck="false" />
+        <button type="submit">Trust user</button>
+      </form>
       <p id="message" class="message" role="status"></p>
     </header>
     <main id="chat" class="chat"></main>

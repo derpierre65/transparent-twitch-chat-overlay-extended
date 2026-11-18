@@ -66,6 +66,18 @@ describe('createModerator', () => {
     await expect(moderator(fetchFn).mod.timeout('1', '5')).rejects.toThrow('Twitch: The user is not a moderator');
   });
 
+  it('looks up a user by login without a moderator_id', async () => {
+    const fetchFn = fetchSequence(json({ data: [{ id: '123', login: 'viewer' }] }), json({ data: [] }));
+    const { mod } = moderator(fetchFn);
+    expect(await mod.findUser('viewer')).toEqual({ id: '123', login: 'viewer' });
+    expect(await mod.findUser('nobody')).toBeNull();
+
+    const { url, init } = call(fetchFn);
+    expect(init.method).toBe('GET');
+    expect(url.pathname).toBe('/helix/users');
+    expect(Object.fromEntries(url.searchParams)).toEqual({ login: 'viewer' });
+  });
+
   it('reports network errors', async () => {
     const fetchFn = fetchSequence(new Error('offline'));
     await expect(moderator(fetchFn).mod.ban('1', '5')).rejects.toThrow('Twitch not reachable.');
