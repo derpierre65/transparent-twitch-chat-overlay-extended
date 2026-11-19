@@ -32,12 +32,28 @@ function setup(
 ) {
   const sockets: (SocketLike & { sent: string[]; closed: boolean })[] = [];
   const timers: { fn: () => void; ms: number }[] = [];
+  const intervals: { fn: () => void; ms: number }[] = [];
   const events: OverlayEvent[] = [];
   const status: StatusState[] = [];
+  // What the GET endpoint reports as enabled.
+  const active: { type: string; session: string }[] = [];
+  const posts: { type: string; session: string }[] = [];
+  let postStatus = fetchOk ? 202 : 403;
 
-  const fetchFn = vi.fn(async () =>
-    fetchOk ? new Response('{}', { status: 202 }) : new Response('nope', { status: 403 }),
-  ) as unknown as typeof fetch;
+  const fetchFn = vi.fn(async (_url: string, init?: RequestInit) => {
+    if (init?.method === 'POST') {
+      const body = JSON.parse(init.body as string) as { type: string; transport: { session_id: string } };
+      posts.push({ type: body.type, session: body.transport.session_id });
+      return new Response('{}', { status: postStatus });
+    }
+    return new Response(
+      JSON.stringify({
+        data: active.map((a) => ({ type: a.type, transport: { session_id: a.session } })),
+        pagination: {},
+      }),
+      { status: 200 },
+    );
+  }) as unknown as typeof fetch;
 
   const source = createEventSubSource({
     clientId: 'c',
@@ -56,10 +72,20 @@ function setup(
       return timers.length as unknown as ReturnType<typeof setTimeout>;
     }) as unknown as typeof setTimeout,
     clearTimeoutFn: (() => {}) as unknown as typeof clearTimeout,
+    setIntervalFn: ((fn: () => void, ms: number) => {
+      intervals.push({ fn, ms });
+      return intervals.length as unknown as ReturnType<typeof setInterval>;
+    }) as unknown as typeof setInterval,
+    clearIntervalFn: (() => {}) as unknown as typeof clearInterval,
     fetchFn,
+    log: () => {},
   });
 
-  return { source, sockets, timers, events, status, fetchFn };
+  const setPostStatus = (code: number): void => {
+    postStatus = code;
+  };
+
+  return { source, sockets, timers, intervals, events, status, fetchFn, active, posts, setPostStatus };
 }
 
 describe('createEventSubSource', () => {
@@ -196,6 +222,118 @@ describe('createEventSubSource', () => {
     sockets[0]!.onmessage?.({ data: welcome() });
 
     await vi.waitFor(() => expect(status).toContain('ok'));
+  });
+
+  it('reports down when a subscription request is rejected', async () => {
+    const { source, sockets, status } = setup(undefined, false);
+    source.connect();
+    sockets[0]!.onmessage?.({ data: welcome() });
+
+    await vi.waitFor(() => expect(status).toContain('down'));
+    expect(status).not.toContain('ok');
+  });
+
+  it('re-arms the keepalive on notifications', () => {
+    const { source, sockets, timers } = setup();
+    source.connect();
+    sockets[0]!.onmessage?.({ data: welcome('s1', 30) });
+    const before = timers.length;
+
+    sockets[0]!.onmessage?.({
+      data: JSON.stringify({
+        metadata: { message_type: 'notification', message_id: 'n1', subscription_type: 'channel.follow' },
+        payload: { event: { user_name: 'Newbie' } },
+      }),
+    });
+
+    expect(timers[before]?.ms).toBe(33000);
+  });
+
+  it('checks subscriptions every two minutes', () => {
+    const { source, intervals } = setup();
+    source.connect();
+    expect(intervals).toEqual([expect.objectContaining({ ms: 120_000 })]);
+  });
+
+  it('resubscribes only the topics missing from the session', async () => {
+    const { source, sockets, intervals, active, posts } = setup();
+    source.connect();
+    sockets[0]!.onmessage?.({ data: welcome('s1') });
+    await vi.waitFor(() => expect(posts).toHaveLength(TOPICS.length));
+    posts.length = 0;
+
+    for (const topic of TOPICS.slice(1)) active.push({ type: topic.type, session: 's1' });
+    // Same type on an old session must not count.
+    active.push({ type: TOPICS[0]!.type, session: 'old' });
+    intervals[0]!.fn();
+
+    await vi.waitFor(() => expect(posts).toEqual([{ type: TOPICS[0]!.type, session: 's1' }]));
+  });
+
+  it('does nothing when every topic is still active', async () => {
+    const { source, sockets, intervals, active, posts, fetchFn } = setup();
+    source.connect();
+    sockets[0]!.onmessage?.({ data: welcome('s1') });
+    await vi.waitFor(() => expect(posts).toHaveLength(TOPICS.length));
+    posts.length = 0;
+
+    for (const topic of TOPICS) active.push({ type: topic.type, session: 's1' });
+    intervals[0]!.fn();
+
+    const calls = (fetchFn as unknown as { mock: { calls: unknown[] } }).mock.calls;
+    await vi.waitFor(() => expect(calls.length).toBe(TOPICS.length + 1));
+    expect(posts).toHaveLength(0);
+  });
+
+  it('checks against the new session after a reconnect', async () => {
+    const { source, sockets, intervals, active, posts } = setup();
+    source.connect();
+    sockets[0]!.onmessage?.({ data: welcome('s1') });
+    await vi.waitFor(() => expect(posts).toHaveLength(TOPICS.length));
+    posts.length = 0;
+
+    sockets[0]!.onmessage?.({
+      data: JSON.stringify({
+        metadata: { message_type: 'session_reconnect', message_id: 'r1' },
+        payload: { session: { reconnect_url: 'wss://new' } },
+      }),
+    });
+    sockets[1]!.onmessage?.({ data: welcome('s2') });
+
+    for (const topic of TOPICS) active.push({ type: topic.type, session: 's2' });
+    intervals[0]!.fn();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(posts).toHaveLength(0);
+  });
+
+  it('reconnects when the session rejects every resubscribe', async () => {
+    const { source, sockets, intervals, posts, setPostStatus } = setup();
+    source.connect();
+    sockets[0]!.onmessage?.({ data: welcome('s1') });
+    await vi.waitFor(() => expect(posts).toHaveLength(TOPICS.length));
+
+    setPostStatus(400);
+    intervals[0]!.fn();
+
+    await vi.waitFor(() => expect(sockets).toHaveLength(2));
+  });
+
+  it('checks right away on revocation', async () => {
+    const { source, sockets, active, posts } = setup();
+    source.connect();
+    sockets[0]!.onmessage?.({ data: welcome('s1') });
+    await vi.waitFor(() => expect(posts).toHaveLength(TOPICS.length));
+    posts.length = 0;
+
+    for (const topic of TOPICS) if (topic.type !== 'channel.follow') active.push({ type: topic.type, session: 's1' });
+    sockets[0]!.onmessage?.({
+      data: JSON.stringify({
+        metadata: { message_type: 'revocation', message_id: 'x2' },
+        payload: { subscription: { type: 'channel.follow', status: 'authorization_revoked' } },
+      }),
+    });
+
+    await vi.waitFor(() => expect(posts).toEqual([{ type: 'channel.follow', session: 's1' }]));
   });
 
   it('stops reconnecting after close() was called', () => {
