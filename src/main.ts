@@ -12,7 +12,7 @@ import { createTrustStore } from './approval/trust-store';
 import { parseConfig, type ApprovalConfig } from './config';
 import { MESSAGES, type Messages } from './i18n';
 import { playDemo } from './demo/fixtures';
-import { createRegistry } from './emotes/registry';
+import { createRegistry, type EmoteRegistry } from './emotes/registry';
 import { loadEmotes } from './emotes/providers';
 import { createApprovalGate, type ApprovalGate } from './events/approval-gate';
 import { createBus } from './events/bus';
@@ -116,11 +116,32 @@ async function main(): Promise<void> {
     : readIdentity(storage);
   const channel = identity?.login || null;
 
-  const badges: BadgeIndex = session
-    ? await loadBadges({ clientId: CLIENT_ID, token: session.token, broadcasterId: session.validation.userId })
-    : emptyBadgeIndex;
+  // Loaded in the background so slow emote/badge services never hold up chat or EventSub;
+  // messages before that render without them.
+  let badgeIndex = emptyBadgeIndex;
+  const badges: BadgeIndex = { get: (setId, version) => badgeIndex.get(setId, version) };
+  const badgesLoaded = session
+    ? loadBadges({ clientId: CLIENT_ID, token: session.token, broadcasterId: session.validation.userId })
+        .then((index) => {
+          badgeIndex = index;
+        })
+        .catch((error: unknown) => hostLog(`badges failed: ${String(error)}`))
+    : Promise.resolve();
 
-  const emotes = createRegistry(identity?.userId ? await loadEmotes(identity.userId) : []);
+  let emoteRegistry = createRegistry([]);
+  const emotes: EmoteRegistry = {
+    get: (code) => emoteRegistry.get(code),
+    get size() {
+      return emoteRegistry.size;
+    },
+  };
+  const emotesLoaded = identity?.userId
+    ? loadEmotes(identity.userId)
+        .then((sources) => {
+          emoteRegistry = createRegistry(sources);
+        })
+        .catch((error: unknown) => hostLog(`emotes failed: ${String(error)}`))
+    : Promise.resolve();
 
   const bus = createBus();
   const sound = createSoundPlayer();
@@ -135,6 +156,8 @@ async function main(): Promise<void> {
   });
 
   if (config.demo) {
+    // The demo shows emotes and badges from its first message on.
+    await Promise.all([badgesLoaded, emotesLoaded]);
     playDemo((event) => bus.emit(event));
     return;
   }
