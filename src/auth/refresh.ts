@@ -1,3 +1,4 @@
+import { hostLog } from '../host/log';
 import { withLock } from './locks';
 import {
   OVERLAY_PROFILE,
@@ -26,7 +27,16 @@ export async function requestRefresh(
   } catch {
     return { status: 'unreachable' };
   }
-  if (!response.ok) return { status: classifyFailure(response.status) };
+  if (!response.ok) {
+    let message = '';
+    try {
+      message = ((await response.json()) as { message?: string }).message ?? '';
+    } catch {
+      /* body is only for the log */
+    }
+    hostLog(`token refresh failed: HTTP ${response.status} ${message}`);
+    return { status: classifyFailure(response.status) };
+  }
 
   try {
     const pair = parseTokenPair(await response.json());
@@ -65,7 +75,16 @@ export function createTokenRefresher(opts: {
       writeTokens(opts.storage, result.value, profile);
       return { status: 'ok', value: result.value.accessToken };
     }
-    if (result.status === 'rejected') clearTokens(opts.storage, profile);
+    if (result.status === 'rejected') {
+      // Another window may have redeemed it meanwhile (e.g. without shared Web Locks);
+      // clearing would then wipe its fresh pair.
+      const latest = readToken(opts.storage, profile);
+      if (readRefreshToken(opts.storage, profile) !== refreshToken && latest) {
+        hostLog('token refresh rejected, adopting the pair another window stored');
+        return { status: 'ok', value: latest };
+      }
+      clearTokens(opts.storage, profile);
+    }
     return result;
   }
 

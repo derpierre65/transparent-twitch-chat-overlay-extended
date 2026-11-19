@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { TOPICS, createEventSubSource, type SocketLike } from './eventsub';
+import { TOPICS, createEventSubSource, type RetryInfo, type SocketLike } from './eventsub';
 import type { OverlayEvent, StatusState } from '../events/types';
 
 function fakeSocket(): SocketLike & { sent: string[]; closed: boolean } {
@@ -38,6 +38,7 @@ function setup(
   // What the GET endpoint reports as enabled.
   const active: { type: string; session: string }[] = [];
   const posts: { type: string; session: string }[] = [];
+  const retries: RetryInfo[] = [];
   let postStatus = fetchOk ? 202 : 403;
 
   const fetchFn = vi.fn(async (_url: string, init?: RequestInit) => {
@@ -79,13 +80,14 @@ function setup(
     clearIntervalFn: (() => {}) as unknown as typeof clearInterval,
     fetchFn,
     log: () => {},
+    onRetry: (info) => retries.push(info),
   });
 
   const setPostStatus = (code: number): void => {
     postStatus = code;
   };
 
-  return { source, sockets, timers, intervals, events, status, fetchFn, active, posts, setPostStatus };
+  return { source, sockets, timers, intervals, events, status, fetchFn, active, posts, setPostStatus, retries };
 }
 
 describe('createEventSubSource', () => {
@@ -334,6 +336,41 @@ describe('createEventSubSource', () => {
     });
 
     await vi.waitFor(() => expect(posts).toEqual([{ type: 'channel.follow', session: 's1' }]));
+  });
+
+  it('retries failed topics with backoff and reports recovery', async () => {
+    const { source, sockets, timers, posts, retries, setPostStatus } = setup(['channel:read:redemptions']);
+    setPostStatus(429);
+    source.connect();
+    sockets[0]!.onmessage?.({ data: welcome('s1') });
+
+    await vi.waitFor(() => expect(retries).toHaveLength(1));
+    expect(retries[0]).toEqual({ types: [TOPICS[0]!.type], statuses: [429], delayMs: 5000 });
+    const first = timers.at(-1)!;
+    expect(first.ms).toBe(5000);
+
+    first.fn();
+    await vi.waitFor(() => expect(retries).toHaveLength(2));
+    expect(retries[1]?.delayMs).toBe(15000);
+
+    setPostStatus(202);
+    timers.at(-1)!.fn();
+    await vi.waitFor(() => expect(retries).toHaveLength(3));
+    expect(retries[2]).toBeNull();
+    expect(posts).toHaveLength(3);
+  });
+
+  it('does not retry after close()', async () => {
+    const { source, sockets, timers, posts, retries, setPostStatus } = setup(['channel:read:redemptions']);
+    setPostStatus(500);
+    source.connect();
+    sockets[0]!.onmessage?.({ data: welcome('s1') });
+    await vi.waitFor(() => expect(retries).toHaveLength(1));
+
+    source.close();
+    timers.at(-1)!.fn();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(posts).toHaveLength(1);
   });
 
   it('stops reconnecting after close() was called', () => {

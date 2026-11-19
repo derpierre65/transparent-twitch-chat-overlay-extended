@@ -103,8 +103,10 @@ async function main(): Promise<void> {
   // Before badges and emotes: their services can be slow and must not hold up the login.
   if (!config.demo) {
     // New scopes need consent once; until then everything keeps running on the old token.
-    const missingScope = session !== null && SCOPES.some((scope) => !session.validation.scopes.includes(scope));
-    if (auth.status === 'rejected' || missingScope) openLogin();
+    const missing = session ? SCOPES.filter((scope) => !session.validation.scopes.includes(scope)) : [];
+    if (auth.status === 'rejected') hostLog(`login needed: token rejected at boot (origin ${location.origin}, locks ${!!navigator.locks})`);
+    if (missing.length > 0) hostLog(`login needed: missing scopes ${missing.join(', ')}`);
+    if (auth.status === 'rejected' || missing.length > 0) openLogin();
     if (auth.status === 'unreachable') retryAuthentication(storage, refresher, openLogin);
   }
 
@@ -148,7 +150,7 @@ async function main(): Promise<void> {
   const intake = approval?.gate ?? chatDelay;
 
   if (session) {
-    const getToken = startEventSub(session, refresher, status, bus.emit);
+    const getToken = startEventSub(session, refresher, status, bus.emit, t);
     const syncChatDelay = async (): Promise<void> => {
       const seconds = await fetchChatDelay({
         clientId: CLIENT_ID,
@@ -282,8 +284,11 @@ function startEventSub(
   refresher: TokenRefresher,
   status: StatusPill,
   emit: (event: OverlayEvent) => void,
+  t: Messages,
 ): () => string {
   let token = session.token;
+  const notice = (text: string): void =>
+    emit({ id: `eventsub-${Date.now()}-${Math.random()}`, ts: Date.now(), type: 'notice', text, silent: true });
 
   const eventsub = createEventSubSource({
     clientId: CLIENT_ID,
@@ -292,6 +297,16 @@ function startEventSub(
     grantedScopes: session.validation.scopes,
     emit,
     onStatus: (state) => status.set('eventsub', state),
+    onRetry: (info) =>
+      notice(
+        info
+          ? t.eventsubRetry(
+              info.types.map((type) => type.replace(/^channel\./, '')),
+              info.statuses,
+              Math.round(info.delayMs / 1000),
+            )
+          : t.eventsubRecovered(),
+      ),
   });
   eventsub.connect();
 
@@ -315,6 +330,7 @@ function startEventSub(
 
     const refreshed = await refresher.refresh(token);
     if (refreshed.status === 'ok') {
+      hostLog('token refreshed');
       token = refreshed.value;
       status.set('token', 'ok');
       schedule(RETRY_MS);
@@ -325,6 +341,7 @@ function startEventSub(
       return;
     }
 
+    hostLog('token refresh rejected, EventSub stopped until next login');
     eventsub.close();
     status.set('token', 'down');
     status.set('eventsub', 'down');

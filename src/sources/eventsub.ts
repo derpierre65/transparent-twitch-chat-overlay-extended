@@ -6,6 +6,7 @@ const WS_URL = 'wss://eventsub.wss.twitch.tv/ws';
 const SUBSCRIPTIONS_URL = 'https://api.twitch.tv/helix/eventsub/subscriptions';
 // Subscriptions can vanish without a revocation message, so verify them periodically.
 const CHECK_INTERVAL_MS = 2 * 60 * 1000;
+const RETRY_DELAYS_MS = [5_000, 15_000, 30_000, 60_000];
 const KEEPALIVE_MARGIN_MS = 3000;
 const RECONNECT_DELAY_MS = 5000;
 const SEEN_LIMIT = 200;
@@ -79,6 +80,9 @@ export interface SocketLike {
 
 export type SocketFactory = (url: string) => SocketLike;
 
+/** `null` once a retry succeeded. */
+export type RetryInfo = { types: string[]; statuses: number[]; delayMs: number } | null;
+
 export interface EventSubSource {
   connect(): void;
   close(): void;
@@ -107,6 +111,7 @@ export function createEventSubSource(opts: {
   setIntervalFn?: typeof setInterval;
   clearIntervalFn?: typeof clearInterval;
   log?: (message: string) => void;
+  onRetry?: (info: RetryInfo) => void;
 }): EventSubSource {
   const makeSocket = opts.socketFactory ?? ((url: string) => new WebSocket(url) as unknown as SocketLike);
   const schedule = opts.setTimeoutFn ?? setTimeout;
@@ -124,6 +129,8 @@ export function createEventSubSource(opts: {
   let sessionId = '';
   let keepaliveSeconds = 10;
   let checking = false;
+  let retryTimer: ReturnType<typeof setTimeout> | null = null;
+  let retryAttempt = 0;
   let stopped = false;
   const seen = new Set<string>();
 
@@ -143,9 +150,9 @@ export function createEventSubSource(opts: {
     };
   }
 
-  /** Returns the HTTP status of every topic that failed (0 = network error). */
-  async function subscribe(topics: Topic[], forSession: string): Promise<number[]> {
-    const failures: number[] = [];
+  /** Status 0 = network error. */
+  async function subscribe(topics: Topic[], forSession: string): Promise<{ topic: Topic; status: number }[]> {
+    const failures: { topic: Topic; status: number }[] = [];
     for (const topic of topics) {
       let status = 0;
       try {
@@ -165,11 +172,37 @@ export function createEventSubSource(opts: {
       }
       // 409: already subscribed on this session.
       if ((status >= 200 && status < 300) || status === 409) continue;
-      failures.push(status);
+      failures.push({ topic, status });
       log(`EventSub subscribe ${topic.type} failed: HTTP ${status}`);
     }
     if (forSession === sessionId) opts.onStatus(failures.length === 0 ? 'ok' : 'down');
     return failures;
+  }
+
+  function cancelRetry(): void {
+    if (retryTimer !== null) unschedule(retryTimer);
+    retryTimer = null;
+  }
+
+  /** Retries failed topics with backoff, e.g. 429 while an old session still counts against the limits. */
+  function afterSubscribe(failures: { topic: Topic; status: number }[], forSession: string): void {
+    if (stopped || forSession !== sessionId) return;
+    cancelRetry();
+    if (failures.length === 0) {
+      if (retryAttempt > 0) opts.onRetry?.(null);
+      retryAttempt = 0;
+      return;
+    }
+
+    const delayMs = RETRY_DELAYS_MS[Math.min(retryAttempt, RETRY_DELAYS_MS.length - 1)]!;
+    retryAttempt += 1;
+    const topics = failures.map((failure) => failure.topic);
+    opts.onRetry?.({ types: topics.map((topic) => topic.type), statuses: failures.map((f) => f.status), delayMs });
+    retryTimer = schedule(() => {
+      retryTimer = null;
+      if (stopped || forSession !== sessionId) return;
+      void subscribe(topics, forSession).then((next) => afterSubscribe(next, forSession));
+    }, delayMs);
   }
 
   /** Types enabled on the given session, or null if the list could not be read. */
@@ -202,7 +235,8 @@ export function createEventSubSource(opts: {
 
   async function check(): Promise<void> {
     const forSession = sessionId;
-    if (stopped || checking || !forSession) return;
+    // A pending retry already covers the missing topics.
+    if (stopped || checking || !forSession || retryTimer !== null) return;
     checking = true;
     try {
       const active = await activeTypes(forSession);
@@ -213,10 +247,12 @@ export function createEventSubSource(opts: {
       log(`EventSub resubscribing: ${missing.map((topic) => topic.type).join(', ')}`);
       const failures = await subscribe(missing, forSession);
       // Twitch answers 400 when the session itself is gone; a fresh socket subscribes everything again.
-      if (forSession === sessionId && failures.length === missing.length && failures.every((s) => s === 400)) {
+      if (forSession === sessionId && failures.length === missing.length && failures.every((f) => f.status === 400)) {
         log('EventSub session looks dead, reconnecting');
         restart();
+        return;
       }
+      afterSubscribe(failures, forSession);
     } finally {
       checking = false;
     }
@@ -262,7 +298,8 @@ export function createEventSubSource(opts: {
       }
 
       current = socket;
-      void subscribe(wanted, sessionId);
+      const forSession = sessionId;
+      void subscribe(wanted, forSession).then((failures) => afterSubscribe(failures, forSession));
       return;
     }
 
@@ -314,6 +351,7 @@ export function createEventSubSource(opts: {
   function restart(): void {
     if (stopped) return;
     sessionId = '';
+    cancelRetry();
     current?.close();
     current = open(WS_URL);
   }
@@ -329,6 +367,7 @@ export function createEventSubSource(opts: {
       if (keepaliveTimer !== null) unschedule(keepaliveTimer);
       if (checkTimer !== null) unevery(checkTimer);
       checkTimer = null;
+      cancelRetry();
       sessionId = '';
       current?.close();
       pending?.close();

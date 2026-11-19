@@ -1,3 +1,4 @@
+import { hostLog } from '../host/log';
 import {
   OVERLAY_PROFILE,
   clearTokens,
@@ -26,6 +27,7 @@ export async function authenticate(opts: {
   // Implicit grant token without refresh token: log in once now instead of when it
   // expires mid-stream.
   if (!readRefreshToken(opts.storage, profile)) {
+    hostLog(`no refresh token stored (${profile.refreshKey})`);
     clearTokens(opts.storage, profile);
     return { status: 'rejected' };
   }

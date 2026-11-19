@@ -37,6 +37,17 @@ describe('createTokenRefresher', () => {
     expect(readRefreshToken(storage)).toBeNull();
   });
 
+  it('adopts the pair another window stored while the refresh was rejected', async () => {
+    const fetchFn = (async () => {
+      writeTokens(storage, { accessToken: 'fromOtherWindow', refreshToken: 'r2' });
+      return new Response(JSON.stringify({ status: 400, message: 'Invalid refresh token' }), { status: 400 });
+    }) as unknown as typeof fetch;
+    const r = createTokenRefresher({ clientId: 'cid', storage, fetchFn });
+
+    expect(await r.refresh('old')).toEqual({ status: 'ok', value: 'fromOtherWindow' });
+    expect(readRefreshToken(storage)).toBe('r2');
+  });
+
   it('keeps the tokens when twitch is unreachable', async () => {
     const fetchFn = fetchSequence(new Error('offline'));
 

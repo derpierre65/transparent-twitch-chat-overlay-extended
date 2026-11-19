@@ -24,6 +24,9 @@ export interface Messages {
   unban(user: string, moderator: string): string;
   bits(count: number): string;
   connected(channel: string): string;
+  /** `statuses`: HTTP codes, 0 = network error. */
+  eventsubRetry(types: string[], statuses: number[], seconds: number): string;
+  eventsubRecovered(): string;
   /** `memory`: no worker configured, `unloaded`: the worker's list failed to load. */
   approvalActive(logins: string[], storage: TrustStorage): string;
   /** `by` is the mod name from the setup code, `null` if the mod has none. */
@@ -103,6 +106,9 @@ const en: Messages = {
   unban: (user, moderator) => `${user} was unbanned by ${moderator}`,
   bits: (count) => `${count} Bits `,
   connected: (channel) => `Connected to ${channel}`,
+  eventsubRetry: (types, statuses, seconds) =>
+    `Events could not be subscribed (${types.join(', ')}; HTTP ${[...new Set(statuses)].join('/')}), retrying in ${seconds}s`,
+  eventsubRecovered: () => 'Events subscribed again',
   approvalActive: (logins, storage) => {
     if (storage === 'unloaded') return 'Chat approval active — trusted users could not be loaded';
     const list = logins.length
@@ -149,6 +155,9 @@ const de: Messages = {
   unban: (user, moderator) => `${user} wurde von ${moderator} entbannt`,
   bits: (count) => `${count} Bits `,
   connected: (channel) => `Verbunden mit ${channel}`,
+  eventsubRetry: (types, statuses, seconds) =>
+    `Events konnten nicht abonniert werden (${types.join(', ')}; HTTP ${[...new Set(statuses)].join('/')}), neuer Versuch in ${seconds} s`,
+  eventsubRecovered: () => 'Events wieder abonniert',
   approvalActive: (logins, storage) => {
     if (storage === 'unloaded') return 'Chat-Freigabe aktiv — vertrauenswürdige User konnten nicht geladen werden';
     const list = logins.length
